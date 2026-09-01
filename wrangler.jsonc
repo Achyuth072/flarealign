@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-agent",
+  "main": "src/server.ts",
+  "compatibility_date": "2025-02-24",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CareerAgent",
+        "class_name": "CareerAgent"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "CareerAgent"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "tailoring-pipeline",
+      "binding": "TAILORING_WORKFLOW",
+      "class_name": "TailoringWorkflow"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
+
