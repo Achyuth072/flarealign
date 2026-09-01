@@ -14,16 +14,9 @@ import {
   Terminal,
   RefreshCw,
   ChevronRight,
+  BookOpen,
 } from "lucide-react";
-
-interface CandidateProfile {
-  name: string;
-  targetRole: string;
-  location: string;
-  yearsOfExperience: number;
-  skills: string[];
-  resumeSummary: string;
-}
+import type { CandidateProfile } from "../lib/candidate";
 
 interface ApiResponse<T> {
   success?: boolean;
@@ -230,6 +223,21 @@ export function App() {
               <span className="flex items-center gap-2">
                 <FileText className="w-3.5 h-3.5 text-sky-400" />
                 Tailor Resume Bullets
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-200 transition-colors" />
+            </button>
+
+            <button
+              onClick={() =>
+                handleQuickAction(
+                  "Generate comprehensive interview preparation with technical questions, STAR-method behavioral stories, and edge systems architecture topics for Cloudflare."
+                )
+              }
+              className="w-full text-left p-2.5 rounded-lg bg-[#1A1C23] hover:bg-[#232631] border border-[#262933] text-xs text-slate-200 transition-all flex items-center justify-between group"
+            >
+              <span className="flex items-center gap-2">
+                <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+                Interview Prep & STAR
               </span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-200 transition-colors" />
             </button>

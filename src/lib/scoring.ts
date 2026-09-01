@@ -17,6 +17,12 @@ export const DEFAULT_FIT_SCORE_WEIGHTS: FitScoreWeights = {
 export const MIN_WEIGHT = 0.10;
 export const MAX_WEIGHT = 0.50;
 
+export function makeId(prefix: string): string {
+  const timestamp = Date.now();
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  return `${prefix}-${timestamp}-${randomSuffix}`;
+}
+
 export interface FitScoreSubDimensions {
   skillsFit: number;
   experienceFit: number;

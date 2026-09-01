@@ -2,7 +2,7 @@ import { AIChatAgent } from "@cloudflare/ai-chat";
 import { createWorkersAI } from "workers-ai-provider";
 import { streamText, tool, ModelMessage, UIMessage } from "ai";
 import { z } from "zod";
-import { computeCompositeFitScore, deriveRecommendation } from "../lib/scoring";
+import { computeCompositeFitScore, deriveRecommendation, makeId } from "../lib/scoring";
 import { DEFAULT_CANDIDATE_PROFILE, CandidateProfile } from "../lib/candidate";
 import { getSystemPrompt } from "../lib/prompts";
 
@@ -13,21 +13,24 @@ export interface CareerAgentState {
   lastScore?: number;
 }
 
+function extractTextFromParts(parts: UIMessage["parts"]): string {
+  let text = "";
+  for (const part of parts) {
+    if (part.type === "text") {
+      text += part.text;
+    }
+  }
+  return text;
+}
+
 function convertUiMessagesToModelMessages(messages: UIMessage[]): ModelMessage[] {
   const modelMessages: ModelMessage[] = [];
   for (const msg of messages) {
-    if (msg.role === "user") {
-      let text = "";
-      for (const part of msg.parts) {
-        if (part.type === "text") text += part.text;
-      }
-      modelMessages.push({ role: "user", content: text });
-    } else if (msg.role === "assistant") {
-      let text = "";
-      for (const part of msg.parts) {
-        if (part.type === "text") text += part.text;
-      }
-      modelMessages.push({ role: "assistant", content: text });
+    if (msg.role === "user" || msg.role === "assistant") {
+      modelMessages.push({
+        role: msg.role,
+        content: extractTextFromParts(msg.parts),
+      });
     }
   }
   return modelMessages;
@@ -42,38 +45,38 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
   private initDatabase(): void {
     this.sql`
       CREATE TABLE IF NOT EXISTS candidates (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        data TEXT,
-        updated_at INTEGER
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        data TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
       );
     `;
     this.sql`
       CREATE TABLE IF NOT EXISTS jobs (
-        id TEXT PRIMARY KEY,
-        title TEXT,
-        company TEXT,
-        description TEXT,
-        created_at INTEGER
+        id TEXT PRIMARY KEY NOT NULL,
+        title TEXT NOT NULL,
+        company TEXT NOT NULL,
+        description TEXT NOT NULL,
+        created_at INTEGER NOT NULL
       );
     `;
     this.sql`
       CREATE TABLE IF NOT EXISTS fit_scores (
-        id TEXT PRIMARY KEY,
-        job_id TEXT,
-        score INTEGER,
-        recommendation TEXT,
-        breakdown TEXT,
-        created_at INTEGER
+        id TEXT PRIMARY KEY NOT NULL,
+        job_id TEXT NOT NULL,
+        score INTEGER NOT NULL,
+        recommendation TEXT NOT NULL,
+        breakdown TEXT NOT NULL,
+        created_at INTEGER NOT NULL
       );
     `;
     this.sql`
       CREATE TABLE IF NOT EXISTS applications (
-        id TEXT PRIMARY KEY,
-        job_id TEXT,
-        tailored_resume TEXT,
-        interview_prep TEXT,
-        created_at INTEGER
+        id TEXT PRIMARY KEY NOT NULL,
+        job_id TEXT NOT NULL,
+        tailored_resume TEXT NOT NULL,
+        interview_prep TEXT NOT NULL,
+        created_at INTEGER NOT NULL
       );
     `;
 
@@ -123,14 +126,16 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           reasoning: z.string().describe("Summary of evaluation reasoning"),
         }),
         execute: async (args) => {
-          const compositeScore = computeCompositeFitScore({
+          const subDimensions = {
             skillsFit: args.skillsFit,
             experienceFit: args.experienceFit,
             domainFit: args.domainFit,
             trajectoryFit: args.trajectoryFit,
-          });
+          };
+          const compositeScore = computeCompositeFitScore(subDimensions);
           const recommendation = deriveRecommendation(compositeScore);
-          const jobId = "job-" + Date.now();
+          const jobId = makeId("job");
+          const scoreId = makeId("score");
 
           this.sql`
             INSERT OR REPLACE INTO jobs (id, title, company, description, created_at)
@@ -138,12 +143,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           `;
 
           const breakdown = JSON.stringify({
-            subDimensions: {
-              skillsFit: args.skillsFit,
-              experienceFit: args.experienceFit,
-              domainFit: args.domainFit,
-              trajectoryFit: args.trajectoryFit,
-            },
+            subDimensions,
             strengths: args.strengths,
             gaps: args.gaps,
             reasoning: args.reasoning,
@@ -151,7 +151,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
 
           this.sql`
             INSERT OR REPLACE INTO fit_scores (id, job_id, score, recommendation, breakdown, created_at)
-            VALUES (${"score-" + Date.now()}, ${jobId}, ${compositeScore}, ${recommendation}, ${breakdown}, ${Date.now()})
+            VALUES (${scoreId}, ${jobId}, ${compositeScore}, ${recommendation}, ${breakdown}, ${Date.now()})
           `;
 
           this.setState({
@@ -165,12 +165,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
             compositeScore,
             recommendation,
             breakdown: {
-              subDimensions: {
-                skillsFit: args.skillsFit,
-                experienceFit: args.experienceFit,
-                domainFit: args.domainFit,
-                trajectoryFit: args.trajectoryFit,
-              },
+              subDimensions,
               strengths: args.strengths,
               gaps: args.gaps,
               reasoning: args.reasoning,
@@ -189,8 +184,8 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           executiveSummary: z.string().describe("Tailored 2-3 sentence executive summary"),
         }),
         execute: async (args) => {
-          const appId = "app-" + Date.now();
-          const activeJobId = this.state?.activeJobId || "job-default";
+          const appId = makeId("app");
+          const activeJobId = this.state?.activeJobId || makeId("job-default");
 
           this.sql`
             INSERT OR REPLACE INTO applications (id, job_id, tailored_resume, interview_prep, created_at)
@@ -207,6 +202,58 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
         },
       }),
 
+      generateInterviewPrep: tool({
+        description: "Formulate technical and behavioral interview preparation with structured STAR-method responses and systems design focus points.",
+        inputSchema: z.object({
+          jobTitle: z.string(),
+          company: z.string(),
+          technicalQuestions: z.array(
+            z.object({
+              question: z.string(),
+              focusArea: z.string(),
+              keyTalkingPoints: z.array(z.string()),
+            })
+          ).describe("Technical questions and talking points"),
+          behavioralQuestions: z.array(
+            z.object({
+              question: z.string(),
+              situationTask: z.string(),
+              actionTaken: z.string(),
+              resultImpact: z.string(),
+            })
+          ).describe("Behavioral questions with STAR-format answers"),
+          systemDesignFocus: z.array(z.string()).describe("Key distributed architecture & edge design topics"),
+        }),
+        execute: async (args) => {
+          const activeJobId = this.state?.activeJobId || makeId("job-default");
+          const prepId = makeId("prep");
+
+          // Check if an application already exists for this job, else create one
+          const existingApp = this.sql`SELECT id, tailored_resume FROM applications WHERE job_id = ${activeJobId} ORDER BY created_at DESC LIMIT 1`;
+          if (existingApp && existingApp.length > 0) {
+            const appId = existingApp[0].id as string;
+            this.sql`
+              UPDATE applications
+              SET interview_prep = ${JSON.stringify(args)}, created_at = ${Date.now()}
+              WHERE id = ${appId}
+            `;
+          } else {
+            this.sql`
+              INSERT OR REPLACE INTO applications (id, job_id, tailored_resume, interview_prep, created_at)
+              VALUES (${prepId}, ${activeJobId}, ${JSON.stringify({})}, ${JSON.stringify(args)}, ${Date.now()})
+            `;
+          }
+
+          return {
+            jobTitle: args.jobTitle,
+            company: args.company,
+            technicalQuestions: args.technicalQuestions,
+            behavioralQuestions: args.behavioralQuestions,
+            systemDesignFocus: args.systemDesignFocus,
+          };
+        },
+      }),
+
       triggerBatchWorkflow: tool({
         description: "Trigger an asynchronous Cloudflare Workflow pipeline for batch job ingestion and background tailoring.",
         inputSchema: z.object({
@@ -215,9 +262,10 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           jobDescription: z.string(),
         }),
         execute: async (args) => {
+          const workflowJobId = makeId("wf-job");
           const instance = await this.env.TAILORING_WORKFLOW.create({
             params: {
-              jobId: "wf-job-" + Date.now(),
+              jobId: workflowJobId,
               jobTitle: args.jobTitle,
               company: args.company,
               jobDescription: args.jobDescription,
@@ -227,6 +275,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           return {
             status: "WORKFLOW_TRIGGERED",
             workflowInstanceId: instance.id,
+            jobId: workflowJobId,
             message: `Background Cloudflare Workflow triggered successfully (Instance: ${instance.id}).`,
           };
         },

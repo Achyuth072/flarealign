@@ -2,6 +2,7 @@ import { routeAgentRequest } from "agents";
 import { CareerAgent } from "./agent/career-agent";
 import { TailoringWorkflow } from "./workflows/tailoring-workflow";
 import { DEFAULT_CANDIDATE_PROFILE } from "./lib/candidate";
+import { makeId } from "./lib/scoring";
 
 export { CareerAgent, TailoringWorkflow };
 
@@ -42,7 +43,7 @@ export default {
         };
         const instance = await env.TAILORING_WORKFLOW.create({
           params: {
-            jobId: "api-job-" + Date.now(),
+            jobId: makeId("api-job"),
             jobTitle: body.jobTitle || "Software Engineer – Platforms & Productivity",
             company: body.company || "Cloudflare",
             jobDescription:

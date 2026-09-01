@@ -12,11 +12,14 @@ describe("Candidate Profile and Prompts", () => {
     expect(parsed.projects.length).toBeGreaterThan(0);
   });
 
-  it("generates structured system prompt with candidate context", () => {
+  it("generates structured system prompt with candidate context and all available tools", () => {
     const prompt = getSystemPrompt(DEFAULT_CANDIDATE_PROFILE);
     expect(prompt).toContain("Achyuth");
     expect(prompt).toContain("scoreJobFit");
     expect(prompt).toContain("tailorResume");
+    expect(prompt).toContain("generateInterviewPrep");
+    expect(prompt).toContain("triggerBatchWorkflow");
+    expect(prompt).toContain("getCandidateProfile");
     expect(prompt).toContain("Cloudflare");
   });
 });
