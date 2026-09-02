@@ -6,11 +6,17 @@
  * Only reachable once validation has already failed, so converting a string
  * that merely looks like a container cannot break an otherwise-valid call.
  */
-export function repairStringifiedContainers(rawInput: string): string | null {
+export function repairStringifiedContainers(rawInput: unknown): string | null {
   let parsed: unknown;
-  try {
-    parsed = JSON.parse(rawInput);
-  } catch {
+  if (typeof rawInput === "string") {
+    try {
+      parsed = JSON.parse(rawInput);
+    } catch {
+      return null;
+    }
+  } else if (typeof rawInput === "object" && rawInput !== null && !Array.isArray(rawInput)) {
+    parsed = rawInput;
+  } else {
     return null;
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {

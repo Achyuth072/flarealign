@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createWorkersAI } from "workers-ai-provider";
-import { streamText, tool } from "ai";
+import { streamText, tool, isStepCount } from "ai";
 import { TailorResumeSchema } from "./tool-schemas";
 import { withDedupedToolCallEnvelopes } from "./workers-ai-binding";
 
@@ -224,5 +224,117 @@ describe("withDedupedToolCallEnvelopes", () => {
     expect(error).toBeUndefined();
     expect(input).toEqual(EXPECTED_INPUT);
   });
+
+  it("handles multi-step tool call and streams UI response properly", async () => {
+    let callIndex = 0;
+    const multiStepBinding: Binding = {
+      run: async (_model: string, _inputs: unknown) => {
+        callIndex++;
+        if (callIndex === 1) {
+          return sseStream(CAPTURED_EVENTS);
+        }
+        return sseStream(CAPTURED_TEXT_EVENTS);
+      },
+    } as unknown as Binding;
+
+    const workersai = createWorkersAI({ binding: withDedupedToolCallEnvelopes(multiStepBinding) });
+    const result = streamText({
+      model: workersai("@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
+      prompt: "Tailor resume",
+      tools: {
+        tailorResume: tool({
+          description: "Generate tailored resume",
+          inputSchema: TailorResumeSchema,
+          execute: async (args) => {
+            return { tailored: true, args };
+          },
+        }),
+      },
+      stopWhen: isStepCount(5),
+    });
+
+    const uiResponse = result.toUIMessageStreamResponse();
+    const reader = uiResponse.body!.getReader();
+    const decoder = new TextDecoder();
+    const chunks: string[] = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(decoder.decode(value));
+    }
+    const fullUIStream = chunks.join("");
+    const uiLines = fullUIStream.split("\n").filter((l) => l.startsWith("data: ") && l !== "data: [DONE]");
+    const parts: any[] = [];
+    for (const line of uiLines) {
+      const data = JSON.parse(line.slice(6));
+      if (data.type === "start-step" || data.type === "finish-step") continue;
+      if (data.type === "start" || data.type === "finish") continue;
+      if (data.type === "tool-input-start") {
+        parts.push({ type: `tool-${data.toolName}`, toolCallId: data.toolCallId, toolName: data.toolName, state: "input-streaming" });
+      } else if (data.type === "tool-input-available") {
+        const p = parts.find((x) => x.toolCallId === data.toolCallId);
+        if (p) {
+          p.state = "input-available";
+          p.input = data.input;
+        }
+      } else if (data.type === "tool-output-available") {
+        const p = parts.find((x) => x.toolCallId === data.toolCallId);
+        if (p) {
+          p.state = "output-available";
+          p.output = data.output;
+        }
+      } else if (data.type === "text-start") {
+        parts.push({ type: "text", text: "", state: "streaming" });
+      } else if (data.type === "text-delta") {
+        const last = parts.filter((p) => p.type === "text").pop();
+        if (last) last.text += data.delta;
+      }
+    }
+
+    expect(parts.length).toBe(2);
+    expect(parts[0].type).toBe("tool-tailorResume");
+    expect(parts[0].state).toBe("output-available");
+    expect(parts[1].type).toBe("text");
+    expect(parts[1].text).toBe(TEXT_CHUNKS.join(""));
+  });
+
+  it("normalizes tool call IDs in assistant and tool messages to strip provider suffix markers", async () => {
+    let capturedInputs: any = null;
+    const testBinding: Binding = {
+      run: async (_model: string, inputs: unknown) => {
+        capturedInputs = inputs;
+        return sseStream(CAPTURED_TEXT_EVENTS);
+      },
+    } as unknown as Binding;
+
+    const proxy = withDedupedToolCallEnvelopes(testBinding);
+    await proxy.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+      messages: [
+        { role: "user", content: "hello" },
+        {
+          role: "assistant",
+          content: "",
+          tool_calls: [
+            {
+              id: "call_123::cf-wai-tool-call::45678",
+              type: "function",
+              function: { name: "scoreJobFit", arguments: "{}" },
+            },
+          ],
+        },
+        {
+          role: "tool",
+          name: "scoreJobFit",
+          tool_call_id: "call_123",
+          content: "{\"score\":85}",
+        },
+      ],
+    } as any);
+
+    expect(capturedInputs).toBeDefined();
+    expect(capturedInputs.messages[1].tool_calls[0].id).toBe("call_123");
+    expect(capturedInputs.messages[2].tool_call_id).toBe("call_123");
+  });
 });
+
 

@@ -59,6 +59,14 @@ describe("repairStringifiedContainers", () => {
   it("leaves ordinary strings alone", () => {
     expect(repairStringifiedContainers(JSON.stringify({ company: "Cloudflare" }))).toBeNull();
   });
+
+  it("handles object input directly", () => {
+    const repaired = repairStringifiedContainers({ strengths: '["TypeScript", "React"]', reasoning: "Strong fit" });
+    expect(repaired && JSON.parse(repaired)).toEqual({
+      strengths: ["TypeScript", "React"],
+      reasoning: "Strong fit",
+    });
+  });
 });
 
 describe("repair feeding tool input validation", () => {

@@ -242,7 +242,7 @@ export function App() {
     name: agentSessionName,
   });
 
-  const { messages, sendMessage, clearHistory, status } = useAgentChat({
+  const { messages, sendMessage, clearHistory, status, error } = useAgentChat({
     agent,
     getInitialMessages: null,
   });
@@ -555,10 +555,21 @@ export function App() {
                             }`}
                           >
                             {!hasContent && !isUser ? (
-                              <div role="status" aria-live="polite" className="flex items-center gap-2.5 text-[#CBD5E1] font-mono text-xs">
-                                <span className="w-2 h-2 rounded-full bg-[#FB923C] animate-pulse" aria-hidden="true" />
-                                <span>Evaluating on Cloudflare Edge...</span>
-                              </div>
+                              status === "error" || error ? (
+                                <div role="alert" className="flex items-center gap-2.5 text-rose-400 font-mono text-xs">
+                                  <span className="w-2 h-2 rounded-full bg-rose-500" aria-hidden="true" />
+                                  <span>Evaluation failed: {error?.message || "Inference error on Cloudflare Edge."}</span>
+                                </div>
+                              ) : status === "ready" ? (
+                                <div className="flex items-center gap-2 text-slate-400 font-mono text-xs">
+                                  <span>Evaluation completed with no response content.</span>
+                                </div>
+                              ) : (
+                                <div role="status" aria-live="polite" className="flex items-center gap-2.5 text-[#CBD5E1] font-mono text-xs">
+                                  <span className="w-2 h-2 rounded-full bg-[#FB923C] animate-pulse" aria-hidden="true" />
+                                  <span>Evaluating on Cloudflare Edge...</span>
+                                </div>
+                              )
                             ) : (
                               msg.parts?.map((part, pIdx) => {
                                 if (part.type === "text") {

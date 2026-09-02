@@ -18,6 +18,48 @@ export type WorkersAIBinding = Extract<
  * Drop the native envelope on events that carry both, leaving exactly one for
  * the provider. Events using only the native shape pass through untouched.
  */
+export function stripToolCallIdMarker(id: string): string {
+  const marker = "::cf-wai-tool-call::";
+  const markerIndex = id.lastIndexOf(marker);
+  return markerIndex === -1 ? id : id.slice(0, markerIndex);
+}
+
+export function normalizeToolCallIds(inputs: unknown): unknown {
+  if (!inputs || typeof inputs !== "object") return inputs;
+  const req = inputs as {
+    messages?: Array<{
+      role?: string;
+      tool_calls?: Array<{ id?: string; [key: string]: unknown }>;
+      tool_call_id?: string;
+      [key: string]: unknown;
+    }>;
+    [key: string]: unknown;
+  };
+
+  if (!Array.isArray(req.messages)) return inputs;
+
+  const normalizedMessages = req.messages.map((msg) => {
+    if (msg.role === "assistant" && Array.isArray(msg.tool_calls)) {
+      return {
+        ...msg,
+        tool_calls: msg.tool_calls.map((tc) => ({
+          ...tc,
+          ...(tc.id ? { id: stripToolCallIdMarker(tc.id) } : {}),
+        })),
+      };
+    }
+    if (msg.role === "tool" && msg.tool_call_id) {
+      return {
+        ...msg,
+        tool_call_id: stripToolCallIdMarker(msg.tool_call_id),
+      };
+    }
+    return msg;
+  });
+
+  return { ...req, messages: normalizedMessages };
+}
+
 export function withDedupedToolCallEnvelopes(binding: WorkersAIBinding): WorkersAIBinding {
   return new Proxy(binding, {
     get(target, prop, receiver) {
@@ -26,7 +68,13 @@ export function withDedupedToolCallEnvelopes(binding: WorkersAIBinding): Workers
         return typeof value === "function" ? value.bind(target) : value;
       }
       return async (...args: unknown[]) => {
-        const result = await (target.run as (...a: unknown[]) => Promise<unknown>).apply(target, args);
+        const [model, inputs, ...rest] = args;
+        const normalizedInputs = normalizeToolCallIds(inputs);
+        const result = await (target.run as (...a: unknown[]) => Promise<unknown>).apply(target, [
+          model,
+          normalizedInputs,
+          ...rest,
+        ]);
         return result instanceof ReadableStream ? result.pipeThrough(dedupeStream()) : result;
       };
     },

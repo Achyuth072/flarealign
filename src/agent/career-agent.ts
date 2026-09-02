@@ -591,8 +591,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     const result = streamText({
       model: workersai("@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
       system: getSystemPrompt(candidate, activeJob),
-      messages: await convertToModelMessages(this.messages),
-      tools,
+      messages: await convertToModelMessages(this.messages, { ignoreIncompleteToolCalls: true }),
       stopWhen: isStepCount(5),
       abortSignal: options?.abortSignal,
       repairToolCall: async ({ toolCall, error }) => {
