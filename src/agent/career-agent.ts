@@ -43,6 +43,8 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
   };
 
   private initDatabase(): void {
+    this.sql`PRAGMA foreign_keys = ON;`;
+
     this.sql`
       CREATE TABLE IF NOT EXISTS candidates (
         id TEXT PRIMARY KEY NOT NULL,
@@ -63,7 +65,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     this.sql`
       CREATE TABLE IF NOT EXISTS fit_scores (
         id TEXT PRIMARY KEY NOT NULL,
-        job_id TEXT NOT NULL,
+        job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
         score INTEGER NOT NULL,
         recommendation TEXT NOT NULL,
         breakdown TEXT NOT NULL,
@@ -73,14 +75,14 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     this.sql`
       CREATE TABLE IF NOT EXISTS applications (
         id TEXT PRIMARY KEY NOT NULL,
-        job_id TEXT NOT NULL,
+        job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
         tailored_resume TEXT NOT NULL,
         interview_prep TEXT NOT NULL,
         created_at INTEGER NOT NULL
       );
     `;
 
-    // Seed candidate if not existing
+    // Seed candidate if not existing (idempotent, does not overwrite updated profiles)
     const existing = this.sql`SELECT id FROM candidates WHERE id = ${DEFAULT_CANDIDATE_PROFILE.id}`;
     if (!existing || existing.length === 0) {
       this.sql`
@@ -103,6 +105,14 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
       } catch {}
     }
     return DEFAULT_CANDIDATE_PROFILE;
+  }
+
+  async updateCandidate(profile: CandidateProfile): Promise<void> {
+    this.initDatabase();
+    this.sql`
+      INSERT OR REPLACE INTO candidates (id, name, data, updated_at)
+      VALUES (${profile.id}, ${profile.name}, ${JSON.stringify(profile)}, ${Date.now()})
+    `;
   }
 
   override async onChatMessage(onFinish?: any, options?: any) {
@@ -185,7 +195,25 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
         }),
         execute: async (args) => {
           const appId = makeId("app");
-          const activeJobId = this.state?.activeJobId || makeId("job-default");
+          let activeJobId = this.state?.activeJobId;
+
+          if (!activeJobId) {
+            activeJobId = makeId("job");
+            this.sql`
+              INSERT OR IGNORE INTO jobs (id, title, company, description, created_at)
+              VALUES (${activeJobId}, ${args.jobTitle}, ${args.company}, ${""}, ${Date.now()})
+            `;
+            this.setState({
+              ...this.state,
+              activeJobId,
+            });
+          } else {
+            // Ensure parent job record exists for foreign key constraint
+            this.sql`
+              INSERT OR IGNORE INTO jobs (id, title, company, description, created_at)
+              VALUES (${activeJobId}, ${args.jobTitle}, ${args.company}, ${""}, ${Date.now()})
+            `;
+          }
 
           this.sql`
             INSERT OR REPLACE INTO applications (id, job_id, tailored_resume, interview_prep, created_at)
@@ -225,8 +253,26 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           systemDesignFocus: z.array(z.string()).describe("Key distributed architecture & edge design topics"),
         }),
         execute: async (args) => {
-          const activeJobId = this.state?.activeJobId || makeId("job-default");
+          let activeJobId = this.state?.activeJobId;
           const prepId = makeId("prep");
+
+          if (!activeJobId) {
+            activeJobId = makeId("job");
+            this.sql`
+              INSERT OR IGNORE INTO jobs (id, title, company, description, created_at)
+              VALUES (${activeJobId}, ${args.jobTitle}, ${args.company}, ${""}, ${Date.now()})
+            `;
+            this.setState({
+              ...this.state,
+              activeJobId,
+            });
+          } else {
+            // Ensure parent job record exists for foreign key constraint
+            this.sql`
+              INSERT OR IGNORE INTO jobs (id, title, company, description, created_at)
+              VALUES (${activeJobId}, ${args.jobTitle}, ${args.company}, ${""}, ${Date.now()})
+            `;
+          }
 
           // Check if an application already exists for this job, else create one
           const existingApp = this.sql`SELECT id, tailored_resume FROM applications WHERE job_id = ${activeJobId} ORDER BY created_at DESC LIMIT 1`;
