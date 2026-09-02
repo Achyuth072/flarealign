@@ -11,17 +11,33 @@ import {
   CheckCircle2,
   Trash2,
   AlertCircle,
+  Briefcase,
+  Plus,
 } from "lucide-react";
-import type { CandidateProfile, ToolPartLike, ApiResponse, ScoreJobFitData, TailorResumeData, InterviewPrep } from "./types";
+import type {
+  CandidateProfile,
+  JobPosting,
+  ToolPartLike,
+  ApiResponse,
+  ScoreJobFitData,
+  TailorResumeData,
+  InterviewPrep,
+} from "./types";
 import { Header } from "./components/Header";
 import { AgentSidebar } from "./components/AgentSidebar";
 import { FitScoreView } from "./components/FitScoreView";
 import { TailorResumeView } from "./components/TailorResumeView";
 import { InterviewPrepView } from "./components/InterviewPrepView";
 import { EditProfileModal } from "./components/EditProfileModal";
+import { EditJobModal } from "./components/EditJobModal";
 import { getClientSessionConfig } from "./session";
 
-function renderToolPart(part: ToolPartLike, pIdx: number) {
+function renderToolPart(
+  part: ToolPartLike,
+  pIdx: number,
+  job: JobPosting | null,
+  onIngestJob: () => void
+) {
   const toolName = part.type?.startsWith("tool-")
     ? part.type.replace("tool-", "")
     : part.toolName || part.type;
@@ -78,15 +94,79 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
   }
 
   if (toolName === "generateInterviewPrep" && payload) {
-    return <InterviewPrepView key={pIdx} data={payload as Partial<InterviewPrep>} />;
+    return (
+      <InterviewPrepView
+        key={pIdx}
+        data={payload as Partial<InterviewPrep>}
+        job={job}
+        onIngestJob={onIngestJob}
+      />
+    );
   }
 
   if (toolName === "scoreJobFit" && payload) {
-    return <FitScoreView key={pIdx} data={payload as ScoreJobFitData} />;
+    return (
+      <FitScoreView
+        key={pIdx}
+        data={payload as ScoreJobFitData}
+        job={job}
+        onIngestJob={onIngestJob}
+      />
+    );
   }
 
   if (toolName === "tailorResume" && payload) {
-    return <TailorResumeView key={pIdx} data={payload as TailorResumeData} />;
+    return (
+      <TailorResumeView
+        key={pIdx}
+        data={payload as TailorResumeData}
+        job={job}
+        onIngestJob={onIngestJob}
+      />
+    );
+  }
+
+  if (toolName === "ingestJobDescription" && payload) {
+    const data = payload as { job?: JobPosting; message?: string };
+    const ingestedJob = data.job;
+    return (
+      <div key={pIdx} className="p-4 rounded-xl bg-[#141518] border border-[#2F333E] mt-3 space-y-2.5 text-xs text-[#CBD5E1]">
+        <div className="flex items-center justify-between pb-2 border-b border-[#2F333E]">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-[#F6821F]/20 text-[#FB923C] flex items-center justify-center font-bold" aria-hidden="true">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            </div>
+            <h4 className="font-bold text-white text-xs font-mono">Target Job Synced to SQLite</h4>
+          </div>
+          <span className="text-xs px-2.5 py-0.5 rounded bg-[#1C1E24] text-[#FB923C] font-mono border border-[#3B3F4E] font-medium">
+            Durable Objects SQLite
+          </span>
+        </div>
+        <p className="text-xs text-[#CBD5E1]">{data.message || "Target job successfully ingested and activated."}</p>
+        {ingestedJob && (
+          <div className="p-3 rounded-lg bg-[#0E0F12] border border-[#2F333E] text-xs space-y-2 font-mono text-[#CBD5E1]">
+            <div className="flex items-center justify-between">
+              <div className="text-white font-bold">
+                {ingestedJob.title} @ {ingestedJob.company}
+              </div>
+              <span className="text-xs text-[#94A3B8]">{ingestedJob.location || "Remote"}</span>
+            </div>
+            {ingestedJob.experienceLevel && (
+              <div className="text-[#CBD5E1] text-xs">Experience: {ingestedJob.experienceLevel}</div>
+            )}
+            {ingestedJob.requiredSkills && ingestedJob.requiredSkills.length > 0 && (
+              <div className="text-[#94A3B8] text-xs flex flex-wrap gap-1 pt-1">
+                {ingestedJob.requiredSkills.map((sk, i) => (
+                  <span key={i} className="px-2 py-0.5 rounded bg-[#18191E] border border-[#3B3F4E] text-[#FB923C] text-xs">
+                    {sk}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (toolName === "updateCandidateProfile" && payload) {
@@ -145,14 +225,16 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
 
 export function App() {
   const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
+  const [job, setJob] = useState<JobPosting | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditJobModalOpen, setIsEditJobModalOpen] = useState(false);
   const [inputVal, setInputVal] = useState("");
   const [isTriggeringWorkflow, setIsTriggeringWorkflow] = useState(false);
   const [workflowStatus, setWorkflowStatus] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Stable session configuration initialized once per page load
-  const [{ userId, agentSessionName }] = useState(() => getClientSessionConfig());
+  const [{ userId, sessionId, agentSessionName }] = useState(() => getClientSessionConfig());
 
   // Connect to CareerAgent Durable Object Actor with isolated session
   const agent = useAgent({
@@ -165,6 +247,7 @@ export function App() {
     getInitialMessages: null,
   });
 
+  // Load candidate profile
   useEffect(() => {
     fetch(`/api/candidate?userId=${encodeURIComponent(userId)}`)
       .then((res) => res.json() as Promise<ApiResponse<CandidateProfile>>)
@@ -173,6 +256,16 @@ export function App() {
       })
       .catch((err) => console.error("Failed to load candidate:", err));
   }, [userId]);
+
+  // Load active target job
+  useEffect(() => {
+    fetch(`/api/job?session=${encodeURIComponent(agentSessionName)}&userId=${encodeURIComponent(userId)}&sessionId=${encodeURIComponent(sessionId)}`)
+      .then((res) => res.json() as Promise<ApiResponse<JobPosting>>)
+      .then((data) => {
+        if (data.job) setJob(data.job);
+      })
+      .catch((err) => console.error("Failed to load target job:", err));
+  }, [agentSessionName, userId, sessionId]);
 
   useEffect(() => {
     const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -205,10 +298,11 @@ export function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobTitle: "Software Engineer – Edge Platform & DevEx",
-          company: "Cloudflare",
+          jobTitle: job?.title || "Software Engineer – Edge Platform & DevEx",
+          company: job?.company || "Cloudflare",
           jobDescription:
-            "Architect edge-native platforms, developer tooling, Workers AI integration, and Durable Objects distributed systems at Cloudflare Bengaluru.",
+            job?.rawDescription ||
+            "Architect edge-native platforms, developer tooling, Workers AI integration, and Durable Objects distributed systems at Cloudflare.",
         }),
       });
       const data = (await res.json()) as ApiResponse<unknown>;
@@ -237,7 +331,9 @@ export function App() {
       {/* Top Navbar */}
       <Header
         candidate={candidate}
+        job={job}
         onEditProfile={() => setIsEditModalOpen(true)}
+        onEditJob={() => setIsEditJobModalOpen(true)}
         status={String(status)}
       />
 
@@ -249,7 +345,9 @@ export function App() {
           isTriggeringWorkflow={isTriggeringWorkflow}
           workflowStatus={workflowStatus}
           candidate={candidate}
+          job={job}
           onEditProfile={() => setIsEditModalOpen(true)}
+          onEditJob={() => setIsEditJobModalOpen(true)}
         />
 
         {/* Center Main Dashboard Workspace */}
@@ -273,7 +371,13 @@ export function App() {
                     </span>
                   </div>
                   <p className="text-xs text-[#CBD5E1]">
-                    Workers AI (Llama 3.3 70B) • Durable Objects SQLite • Cloudflare Workflows
+                    {job ? (
+                      <span>
+                        Target: <strong className="text-white">{job.title} @ {job.company}</strong> • Llama 3.3 70B • SQLite
+                      </span>
+                    ) : (
+                      "Workers AI (Llama 3.3 70B) • Durable Objects SQLite • Cloudflare Workflows"
+                    )}
                   </p>
                 </div>
               </div>
@@ -290,16 +394,18 @@ export function App() {
                 </button>
 
                 <button
-                  onClick={() =>
-                    handleQuickAction(
-                      "Evaluate candidate fit for Cloudflare's Software Engineer - Edge Platform & DevEx opening in Bengaluru."
-                    )
-                  }
+                  onClick={() => {
+                    if (job) {
+                      handleQuickAction(`Evaluate candidate fit for ${job.title} at ${job.company}.`);
+                    } else {
+                      setIsEditJobModalOpen(true);
+                    }
+                  }}
                   className="px-3.5 py-1.5 rounded-md bg-[#F6821F] hover:bg-[#E57213] text-[#0C0D0E] text-xs font-bold flex items-center gap-2 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none cursor-pointer"
-                  aria-label="Score candidate fit for Cloudflare SE role"
+                  aria-label="Score candidate fit"
                 >
                   <Sparkles className="w-4 h-4 fill-[#0C0D0E]" aria-hidden="true" />
-                  <span>Score Fit</span>
+                  <span>{job ? "Score Fit" : "Set Target Job"}</span>
                 </button>
               </div>
             </div>
@@ -319,62 +425,106 @@ export function App() {
 
                   <div className="space-y-1.5">
                     <h2 className="text-base font-bold text-white">
-                      FlareAlign — Edge Platform &amp; DevEx Intelligence
+                      {job ? `Evaluating: ${job.title} @ ${job.company}` : "FlareAlign — Dynamic Job Intelligence"}
                     </h2>
                     <p className="text-xs text-[#CBD5E1] leading-relaxed">
-                      Evaluate candidate fit, generate edge-tailored resume bullets, or architect STAR interview preparation for Cloudflare Bengaluru.
+                      {job
+                        ? `Evaluate candidate fit, generate tailored resume bullets, or architect STAR interview preparation for ${job.title} at ${job.company}.`
+                        : "Ingest any job description to evaluate candidate fit, craft tailored resume impact bullets, or architect STAR interview responses."}
                     </p>
                   </div>
 
                   {/* 3 Quick Action Starter Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full pt-1" role="group" aria-label="Quick action starter shortcuts">
-                    <button
-                      onClick={() =>
-                        handleQuickAction(
-                          "Evaluate my profile against Cloudflare's Software Engineer - Edge Platform & DevEx opening in Bengaluru. Provide score breakdown."
-                        )
-                      }
-                      className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
-                    >
-                      <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 1. Fit Scoring
-                      </div>
-                      <div className="text-xs text-[#CBD5E1]">
-                        35/30/20/15 heuristic match.
-                      </div>
-                    </button>
+                    {job ? (
+                      <>
+                        <button
+                          onClick={() =>
+                            handleQuickAction(
+                              `Evaluate my profile against ${job.title} at ${job.company}. Provide score breakdown.`
+                            )
+                          }
+                          className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                        >
+                          <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 1. Fit Scoring
+                          </div>
+                          <div className="text-xs text-[#CBD5E1]">
+                            Evaluate 35/30/20/15 fit.
+                          </div>
+                        </button>
 
-                    <button
-                      onClick={() =>
-                        handleQuickAction(
-                          "Generate targeted resume bullets highlighting my experience with Cloudflare Workers, Durable Objects, and TypeScript."
-                        )
-                      }
-                      className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
-                    >
-                      <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 2. Resume Bullets
-                      </div>
-                      <div className="text-xs text-[#CBD5E1]">
-                        Tailor edge systems bullets.
-                      </div>
-                    </button>
+                        <button
+                          onClick={() =>
+                            handleQuickAction(
+                              `Generate targeted resume bullets highlighting my qualifications for ${job.title} at ${job.company}.`
+                            )
+                          }
+                          className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                        >
+                          <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 2. Resume Bullets
+                          </div>
+                          <div className="text-xs text-[#CBD5E1]">
+                            Tailor impact bullets.
+                          </div>
+                        </button>
 
-                    <button
-                      onClick={() =>
-                        handleQuickAction(
-                          "Generate comprehensive interview preparation with technical questions, STAR-method behavioral stories, and edge systems architecture topics for Cloudflare."
-                        )
-                      }
-                      className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
-                    >
-                      <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 3. STAR Prep
-                      </div>
-                      <div className="text-xs text-[#CBD5E1]">
-                        Architect STAR answers.
-                      </div>
-                    </button>
+                        <button
+                          onClick={() =>
+                            handleQuickAction(
+                              `Generate comprehensive interview preparation with technical questions and STAR-method behavioral stories for ${job.title} at ${job.company}.`
+                            )
+                          }
+                          className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                        >
+                          <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 3. STAR Prep
+                          </div>
+                          <div className="text-xs text-[#CBD5E1]">
+                            Architect STAR answers.
+                          </div>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setIsEditJobModalOpen(true)}
+                          className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-dashed border-[#F6821F]/70 hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                        >
+                          <div className="font-semibold text-[#FB923C] mb-1.5 flex items-center gap-2">
+                            <Plus className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 1. Ingest Job
+                          </div>
+                          <div className="text-xs text-[#CBD5E1]">
+                            Paste or auto-extract JD.
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => setIsEditJobModalOpen(true)}
+                          className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                        >
+                          <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 2. Fit Scoring
+                          </div>
+                          <div className="text-xs text-[#CBD5E1]">
+                            Set job to compute fit.
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => setIsEditJobModalOpen(true)}
+                          className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                        >
+                          <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 3. Interview Prep
+                          </div>
+                          <div className="text-xs text-[#CBD5E1]">
+                            Set job for STAR questions.
+                          </div>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -420,7 +570,7 @@ export function App() {
                                   );
                                 }
                                 if (part.type.startsWith("tool-") || part.type === "dynamic-tool") {
-                                  return renderToolPart(part, pIdx);
+                                  return renderToolPart(part, pIdx, job, () => setIsEditJobModalOpen(true));
                                 }
                                 return null;
                               })
@@ -454,36 +604,59 @@ export function App() {
                 className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-mono text-[#CBD5E1]"
               >
                 <span className="text-[#94A3B8] text-xs uppercase font-bold">Actions:</span>
-                <button
-                  onClick={() =>
-                    handleQuickAction(
-                      "Evaluate my profile against Cloudflare's Software Engineer - Edge Platform & DevEx opening in Bengaluru. Provide score breakdown."
-                    )
-                  }
-                  className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
-                >
-                  Score Fit
-                </button>
-                <button
-                  onClick={() =>
-                    handleQuickAction(
-                      "Generate targeted resume bullets highlighting my experience with Cloudflare Workers, Durable Objects, and TypeScript."
-                    )
-                  }
-                  className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
-                >
-                  Tailor Resume
-                </button>
-                <button
-                  onClick={() =>
-                    handleQuickAction(
-                      "Generate comprehensive interview preparation with technical questions, STAR-method behavioral stories, and edge systems architecture topics for Cloudflare."
-                    )
-                  }
-                  className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
-                >
-                  STAR Prep
-                </button>
+                {job ? (
+                  <>
+                    <button
+                      onClick={() =>
+                        handleQuickAction(
+                          `Evaluate my profile against ${job.title} at ${job.company}. Provide score breakdown.`
+                        )
+                      }
+                      className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                    >
+                      Score Fit
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleQuickAction(
+                          `Generate targeted resume bullets highlighting my qualifications for ${job.title} at ${job.company}.`
+                        )
+                      }
+                      className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                    >
+                      Tailor Resume
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleQuickAction(
+                          `Generate comprehensive interview preparation with technical questions and STAR-method stories for ${job.title} at ${job.company}.`
+                        )
+                      }
+                      className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                    >
+                      STAR Prep
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setIsEditJobModalOpen(true)}
+                      className="px-3 py-1 rounded-full bg-[#1C1E24] hover:bg-[#272932] border border-[#F6821F]/60 hover:border-[#F6821F] text-[#FB923C] font-semibold transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                    >
+                      + Ingest Target Job
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleQuickAction(
+                          "Evaluate candidate profile strengths, gaps, and recommend suitable edge engineering roles."
+                        )
+                      }
+                      className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+                    >
+                      Profile Analysis
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Main Single Message Input */}
@@ -494,7 +667,11 @@ export function App() {
                   value={inputVal}
                   onChange={(e) => setInputVal(e.target.value)}
                   aria-label="Message prompt input"
-                  placeholder="Ask about Cloudflare SE roles, score fit, or tailor resume..."
+                  placeholder={
+                    job
+                      ? `Ask about ${job.title} @ ${job.company}, score fit, or tailor resume...`
+                      : "Paste a job description, ask questions, or click Ingest Job..."
+                  }
                   className="flex-1 bg-[#141518] border border-[#3B3F4E] focus:border-[#F6821F] rounded-lg px-4 py-2.5 text-xs text-white placeholder-[#94A3B8] focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none transition-colors"
                 />
                 <button
@@ -522,6 +699,19 @@ export function App() {
           onSave={(updated) => setCandidate(updated)}
         />
       )}
+
+      {/* Ingest / Edit Target Job Modal */}
+      <EditJobModal
+        job={job}
+        isOpen={isEditJobModalOpen}
+        userId={userId}
+        sessionId={sessionId}
+        agentSessionName={agentSessionName}
+        onClose={() => setIsEditJobModalOpen(false)}
+        onSave={(updatedJob) => {
+          setJob(updatedJob);
+        }}
+      />
     </div>
   );
 }

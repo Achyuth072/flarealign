@@ -1,20 +1,55 @@
 import React, { useState } from "react";
-import { BookOpen, Award, Code2, Target, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
-import type { InterviewPrep, BehavioralQuestion, TechnicalQuestion } from "../types";
+import { BookOpen, Award, Code2, Target, Copy, Check, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import type { InterviewPrep, BehavioralQuestion, TechnicalQuestion, JobPosting } from "../types";
 
-export function InterviewPrepView({ data }: { data: Partial<InterviewPrep> }) {
-  const technicalQuestions = data.technicalQuestions || [];
-  const behavioralQuestions = data.behavioralQuestions || [];
-  const systemDesignFocus = data.systemDesignFocus || [];
+export interface InterviewPrepViewProps {
+  data?: Partial<InterviewPrep> | null;
+  job?: JobPosting | null;
+  onIngestJob?: () => void;
+}
+
+export function InterviewPrepView({ data, job, onIngestJob }: InterviewPrepViewProps) {
+  const technicalQuestions = data?.technicalQuestions || [];
+  const behavioralQuestions = data?.behavioralQuestions || [];
+  const systemDesignFocus = data?.systemDesignFocus || [];
   const [copied, setCopied] = useState(false);
   const [expandedTech, setExpandedTech] = useState<Record<number, boolean>>({});
+
+  const hasContent = technicalQuestions.length > 0 || behavioralQuestions.length > 0 || systemDesignFocus.length > 0;
+
+  if (!data || !hasContent) {
+    return (
+      <div className="card bg-[#141518] border border-[#2F333E] mt-3 overflow-hidden text-[#CBD5E1]">
+        <div className="p-6 text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-[#1C1E24] border border-[#3B3F4E] flex items-center justify-center mx-auto text-[#FB923C]">
+            <BookOpen className="w-6 h-6" aria-hidden="true" />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h4 className="font-bold text-white text-sm">Target Job Required for Interview Prep</h4>
+            <p className="text-xs text-[#94A3B8] leading-relaxed">
+              Ingest a target job posting to architect structured STAR behavioral responses, systems design talking points, and technical probing questions.
+            </p>
+          </div>
+          {onIngestJob && (
+            <button
+              onClick={onIngestJob}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F6821F] hover:bg-[#E57213] text-[#0C0D0E] font-bold text-xs transition-colors focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none cursor-pointer"
+            >
+              <Plus className="w-4 h-4 fill-[#0C0D0E]" aria-hidden="true" />
+              <span>Ingest Job Posting</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const toggleTech = (idx: number) => {
     setExpandedTech((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
   const handleCopy = () => {
-    let output = `STAR INTERVIEW PREPARATION - ${data.jobTitle || "Role"} @ ${data.company || "Target"}\n\n`;
+    let output = `STAR INTERVIEW PREPARATION - ${data.jobTitle || job?.title || "Role"} @ ${data.company || job?.company || "Target"}\n\n`;
 
     if (behavioralQuestions.length > 0) {
       output += "--- BEHAVIORAL QUESTIONS (STAR METHOD) ---\n";
@@ -57,7 +92,7 @@ export function InterviewPrepView({ data }: { data: Partial<InterviewPrep> }) {
               </span>
             </h4>
             <p className="text-xs text-[#94A3B8]">
-              {data.jobTitle ? `${data.jobTitle} • ` : ""}{data.company || "Target Role"}
+              {data.jobTitle || job?.title ? `${data.jobTitle || job?.title} • ` : ""}{data.company || job?.company || "Target Role"}
             </p>
           </div>
         </div>

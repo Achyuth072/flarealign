@@ -3,15 +3,19 @@ import {
   GitBranch,
   UserCheck,
   CheckCircle2,
+  Briefcase,
+  Plus,
 } from "lucide-react";
-import type { CandidateProfile } from "../types";
+import type { CandidateProfile, JobPosting } from "../types";
 
 interface AgentSidebarProps {
   onTriggerWorkflow: () => void;
   isTriggeringWorkflow: boolean;
   workflowStatus: string | null;
   candidate: CandidateProfile | null;
+  job: JobPosting | null;
   onEditProfile: () => void;
+  onEditJob: () => void;
 }
 
 export function AgentSidebar({
@@ -19,7 +23,9 @@ export function AgentSidebar({
   isTriggeringWorkflow,
   workflowStatus,
   candidate,
+  job,
   onEditProfile,
+  onEditJob,
 }: AgentSidebarProps) {
   return (
     <aside
@@ -27,6 +33,51 @@ export function AgentSidebar({
       className="w-64 border-r border-[#2F333E] bg-[#0E0F12] flex flex-col justify-between hidden md:flex shrink-0 h-full text-xs text-[#CBD5E1] font-sans overflow-hidden"
     >
       <nav aria-label="Sidebar Navigation" className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
+
+        {/* Section: Active Target Job */}
+        <div className="p-3 rounded-lg bg-[#141518] border border-[#2F333E] space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="font-semibold text-white text-xs flex items-center gap-1.5">
+              <Briefcase className="w-3.5 h-3.5 text-[#FB923C]" aria-hidden="true" />
+              <span>Target Role</span>
+            </div>
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#1C1E24] text-[#FB923C] border border-[#3B3F4E] font-medium">
+              {job ? "Active" : "None"}
+            </span>
+          </div>
+          {job ? (
+            <>
+              <div className="font-medium text-white text-xs truncate" title={`${job.title} @ ${job.company}`}>
+                {job.title}
+              </div>
+              <div className="text-xs text-[#94A3B8] truncate">
+                {job.company} • {job.location || "Remote"}
+              </div>
+              <button
+                onClick={onEditJob}
+                aria-label={`Edit target job ${job.title} in SQLite database`}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-md bg-[#18191E] hover:bg-[#272932] text-white text-xs font-medium border border-[#3B3F4E] hover:border-[#F6821F]/60 transition-colors focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
+              >
+                <Briefcase className="w-4 h-4 text-[#FB923C]" aria-hidden="true" />
+                <span>Edit Target Job</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-[#94A3B8] leading-relaxed">
+                No target role set. Ingest a job posting to unlock tailored evaluations.
+              </p>
+              <button
+                onClick={onEditJob}
+                aria-label="Ingest target job posting into SQLite"
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-md bg-[#F6821F] hover:bg-[#E57213] text-[#0C0D0E] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none cursor-pointer"
+              >
+                <Plus className="w-4 h-4 fill-[#0C0D0E]" aria-hidden="true" />
+                <span>Ingest Target Job</span>
+              </button>
+            </>
+          )}
+        </div>
 
         {/* Section: Candidate Profile (Single Source of Truth for SQLite State) */}
         {candidate && (

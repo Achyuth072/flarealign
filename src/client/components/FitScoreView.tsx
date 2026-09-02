@@ -1,8 +1,41 @@
 import React from "react";
-import { Sparkles, CheckCircle2, AlertCircle, Award } from "lucide-react";
-import type { ScoreJobFitData } from "../types";
+import { Sparkles, CheckCircle2, AlertCircle, Award, Briefcase, Plus } from "lucide-react";
+import type { ScoreJobFitData, JobPosting } from "../types";
 
-export function FitScoreView({ data }: { data: ScoreJobFitData }) {
+export interface FitScoreViewProps {
+  data?: ScoreJobFitData | null;
+  job?: JobPosting | null;
+  onIngestJob?: () => void;
+}
+
+export function FitScoreView({ data, job, onIngestJob }: FitScoreViewProps) {
+  if (!data || (data.compositeScore === undefined && data.score === undefined)) {
+    return (
+      <div className="card bg-[#141518] border border-[#2F333E] mt-3 overflow-hidden text-[#CBD5E1]">
+        <div className="p-6 text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-[#1C1E24] border border-[#3B3F4E] flex items-center justify-center mx-auto text-[#FB923C]">
+            <Sparkles className="w-6 h-6" aria-hidden="true" />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h4 className="font-bold text-white text-sm">Target Job Required for Fit Scoring</h4>
+            <p className="text-xs text-[#94A3B8] leading-relaxed">
+              Ingest a target job posting to compute composite role alignment across Skills (35%), Experience (30%), Domain (20%), and Trajectory (15%).
+            </p>
+          </div>
+          {onIngestJob && (
+            <button
+              onClick={onIngestJob}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F6821F] hover:bg-[#E57213] text-[#0C0D0E] font-bold text-xs transition-colors focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none cursor-pointer"
+            >
+              <Plus className="w-4 h-4 fill-[#0C0D0E]" aria-hidden="true" />
+              <span>Ingest Job Posting</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const score = data.compositeScore ?? data.score ?? 0;
   const rec = data.recommendation;
   const breakdown = data.breakdown?.subDimensions || data.subDimensions;
@@ -25,7 +58,9 @@ export function FitScoreView({ data }: { data: ScoreJobFitData }) {
                 Workers AI Heuristics
               </span>
             </h4>
-            <p className="text-xs text-[#94A3B8]">Weighted 4-dimension composite score</p>
+            <p className="text-xs text-[#94A3B8]">
+              {job ? `${job.title} @ ${job.company}` : "Weighted 4-dimension composite score"}
+            </p>
           </div>
         </div>
 
