@@ -60,3 +60,7 @@ npx wrangler login
 ## Configuration
 
 `wrangler.jsonc` sets the bindings this application needs: AI (the LLM), the Durable Object (agent storage), the Workflow, and Assets (the built UI files).
+
+## Prompt History
+
+[.scratch/Product/PROMPT-HISTORY.md](.scratch/Product/PROMPT-HISTORY.md) logs the prompts used to build this application.
