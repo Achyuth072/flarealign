@@ -78,9 +78,9 @@ export function patchCandidateProfile(
 }
 
 export const DEFAULT_CANDIDATE_PROFILE: CandidateProfile = {
-  id: "candidate-achyuth",
-  name: "Achyuth",
-  location: "Bengaluru, India",
+  id: "candidate-default",
+  name: "John Doe",
+  location: "San Francisco, CA",
   targetRole: "Software Engineer – Edge Platform & DevEx",
   yearsOfExperience: 3,
   skills: [

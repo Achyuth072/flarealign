@@ -227,7 +227,7 @@ describe("SQLite Schema & Relational Integrity", () => {
       // 2. User updates profile
       const updatedProfile = {
         ...DEFAULT_CANDIDATE_PROFILE,
-        name: "Achyuth (Updated Staff Profile)",
+        name: "John Doe (Updated Staff Profile)",
         targetRole: "Staff Systems Engineer – Cloudflare Edge",
       };
       const customUpdatedAt = 999999999;
@@ -255,7 +255,7 @@ describe("SQLite Schema & Relational Integrity", () => {
 
       // Verify custom values are preserved
       const candidate = db.prepare("SELECT * FROM candidates WHERE id = ?").get(DEFAULT_CANDIDATE_PROFILE.id) as unknown as CandidateRow;
-      expect(candidate.name).toBe("Achyuth (Updated Staff Profile)");
+      expect(candidate.name).toBe("John Doe (Updated Staff Profile)");
       expect(candidate.updated_at).toBe(customUpdatedAt);
       const parsedData = JSON.parse(candidate.data);
       expect(parsedData.targetRole).toBe("Staff Systems Engineer – Cloudflare Edge");
