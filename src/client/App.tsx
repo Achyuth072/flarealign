@@ -535,6 +535,14 @@ export function App() {
                     const toolParts = msg.parts?.filter((p) => p.type.startsWith("tool-") || p.type === "dynamic-tool") || [];
                     const hasContent = textParts.length > 0 || toolParts.length > 0;
 
+                    // A failed turn leaves two contentless assistant messages behind (the one
+                    // opened by the server's `start` frame, plus one useAgentChat mints when the
+                    // trailing `done` frame arrives after the `error` frame). Only the last one
+                    // carries the turn's status, so rendering the others duplicates the bubble.
+                    if (!isUser && !hasContent && index !== messages.length - 1) {
+                      return null;
+                    }
+
                     return (
                       <div
                         key={msg.id || index}
