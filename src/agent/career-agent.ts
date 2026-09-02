@@ -12,6 +12,7 @@ import { getSystemPrompt } from "../lib/prompts";
 import { InterviewPrepSchema } from "../lib/interview";
 import { seedCandidateIfMissing } from "../lib/schema";
 import { repairStringifiedContainers } from "../lib/repair-tool-input";
+import { withDedupedToolCallEnvelopes, WorkersAIBinding } from "../lib/workers-ai-binding";
 import {
   ScoreJobFitSchema,
   TailorResumeSchema,
@@ -186,7 +187,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     const candidate = await this.getCandidate();
     console.log("[CareerAgent] onChatMessage turn started. History length:", this.messages.length);
     const workersai = createWorkersAI({
-      binding: this.env.AI as unknown as Extract<Parameters<typeof createWorkersAI>[0], { binding: unknown }>["binding"],
+      binding: withDedupedToolCallEnvelopes(this.env.AI as unknown as WorkersAIBinding),
     });
 
     const tools = {
