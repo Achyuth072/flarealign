@@ -48,12 +48,18 @@ export interface FitResult {
   };
 }
 
+export interface JobContext {
+  title: string;
+  company: string;
+  description?: string;
+}
+
 /**
  * Builds the structured LLM prompt combining candidate profile, target job, and computed fit breakdown.
  */
 export function buildSynthesisPrompt(
   candidate: CandidateProfile,
-  job: { title: string; company: string; description: string },
+  job: JobContext,
   fitResult: FitResult
 ): string {
   return `You are an expert technical career advisor and principal systems engineer specializing in cloud platforms, distributed systems, and the Cloudflare ecosystem.
@@ -175,7 +181,7 @@ export function parseSynthesisResponse(rawContent: unknown): SynthesisOutput | n
  * Returns deterministic, high-quality fallback synthesis if AI inference is unavailable or fails.
  */
 export function getFallbackSynthesis(
-  job: { title: string; company: string; description?: string },
+  job: JobContext,
   fitScore?: number
 ): SynthesisOutput {
   const companyName = job.company ? job.company.trim() : "Cloudflare";
@@ -202,7 +208,7 @@ export function getFallbackSynthesis(
 export async function generateTailoringSynthesis(
   aiBinding: Ai | undefined | null,
   candidate: CandidateProfile,
-  job: { title: string; company: string; description: string },
+  job: JobContext,
   fitResult: FitResult
 ): Promise<SynthesisOutput> {
   if (aiBinding && typeof (aiBinding as { run?: unknown }).run === "function") {

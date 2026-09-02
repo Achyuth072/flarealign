@@ -71,9 +71,9 @@ export default {
       return agentResponse;
     }
 
-    // 5. Fallback to Static Assets (Frontend)
+    // Fallback to Static Assets (Frontend)
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request as any) as any;
+      return (env.ASSETS as unknown as { fetch: (req: Request) => Promise<Response> }).fetch(request) as unknown as Response;
     }
 
     return new Response("Not Found", { status: 404 });

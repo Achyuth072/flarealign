@@ -84,6 +84,44 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     return activeJobId;
   }
 
+  private upsertApplication(
+    activeJobId: string,
+    updates: { tailored_resume?: unknown; interview_prep?: unknown }
+  ): string {
+    const existingApp = this.sql`SELECT id, tailored_resume, interview_prep FROM applications WHERE job_id = ${activeJobId} ORDER BY created_at DESC LIMIT 1`;
+    if (existingApp && existingApp.length > 0) {
+      const existingId = existingApp[0].id as string;
+      if (updates.tailored_resume !== undefined) {
+        this.sql`
+          UPDATE applications
+          SET tailored_resume = ${JSON.stringify(updates.tailored_resume)}, created_at = ${Date.now()}
+          WHERE id = ${existingId}
+        `;
+      }
+      if (updates.interview_prep !== undefined) {
+        this.sql`
+          UPDATE applications
+          SET interview_prep = ${JSON.stringify(updates.interview_prep)}, created_at = ${Date.now()}
+          WHERE id = ${existingId}
+        `;
+      }
+      return existingId;
+    }
+
+    const newId = makeId("app");
+    this.sql`
+      INSERT OR REPLACE INTO applications (id, job_id, tailored_resume, interview_prep, created_at)
+      VALUES (
+        ${newId},
+        ${activeJobId},
+        ${JSON.stringify(updates.tailored_resume ?? {})},
+        ${JSON.stringify(updates.interview_prep ?? [])},
+        ${Date.now()}
+      )
+    `;
+    return newId;
+  }
+
   override onStart() {
     this.initDatabase();
   }
@@ -193,26 +231,10 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
         }),
         execute: async (args) => {
           const activeJobId = this.ensureActiveJobId(args.jobTitle, args.company);
-          const appId = makeId("app");
-
-          // Safely upsert into applications table preserving interview_prep if existing
-          const existingApp = this.sql`SELECT id, interview_prep FROM applications WHERE job_id = ${activeJobId} ORDER BY created_at DESC LIMIT 1`;
-          if (existingApp && existingApp.length > 0) {
-            const existingId = existingApp[0].id as string;
-            this.sql`
-              UPDATE applications
-              SET tailored_resume = ${JSON.stringify(args)}, created_at = ${Date.now()}
-              WHERE id = ${existingId}
-            `;
-          } else {
-            this.sql`
-              INSERT OR REPLACE INTO applications (id, job_id, tailored_resume, interview_prep, created_at)
-              VALUES (${appId}, ${activeJobId}, ${JSON.stringify(args)}, ${JSON.stringify([])}, ${Date.now()})
-            `;
-          }
+          const applicationId = this.upsertApplication(activeJobId, { tailored_resume: args });
 
           return {
-            applicationId: appId,
+            applicationId,
             jobTitle: args.jobTitle,
             company: args.company,
             executiveSummary: args.executiveSummary,
@@ -226,23 +248,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
         inputSchema: InterviewPrepSchema,
         execute: async (args) => {
           const activeJobId = this.ensureActiveJobId(args.jobTitle, args.company);
-          const prepId = makeId("prep");
-
-          // Safely upsert into applications table preserving tailored_resume if existing
-          const existingApp = this.sql`SELECT id, tailored_resume FROM applications WHERE job_id = ${activeJobId} ORDER BY created_at DESC LIMIT 1`;
-          if (existingApp && existingApp.length > 0) {
-            const existingId = existingApp[0].id as string;
-            this.sql`
-              UPDATE applications
-              SET interview_prep = ${JSON.stringify(args)}, created_at = ${Date.now()}
-              WHERE id = ${existingId}
-            `;
-          } else {
-            this.sql`
-              INSERT OR REPLACE INTO applications (id, job_id, tailored_resume, interview_prep, created_at)
-              VALUES (${prepId}, ${activeJobId}, ${JSON.stringify({})}, ${JSON.stringify(args)}, ${Date.now()})
-            `;
-          }
+          this.upsertApplication(activeJobId, { interview_prep: args });
 
           return {
             jobTitle: args.jobTitle,
