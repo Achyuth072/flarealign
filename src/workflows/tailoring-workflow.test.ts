@@ -156,7 +156,7 @@ Hope this helps!
 
       expect(mockAi.run).toHaveBeenCalledTimes(1);
       expect(mockAi.run).toHaveBeenCalledWith(
-        "@cf/meta/llama-3.3-70b-instruct",
+        "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
         expect.objectContaining({
           messages: expect.arrayContaining([
             expect.objectContaining({ role: "system" }),

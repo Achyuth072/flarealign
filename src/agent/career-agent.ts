@@ -1,6 +1,6 @@
 import { AIChatAgent } from "@cloudflare/ai-chat";
 import { createWorkersAI } from "workers-ai-provider";
-import { streamText, tool, ModelMessage, UIMessage } from "ai";
+import { streamText, tool, isStepCount, convertToModelMessages } from "ai";
 import { z } from "zod";
 import { computeCompositeFitScore, deriveRecommendation, makeId } from "../lib/scoring";
 import {
@@ -18,29 +18,6 @@ export interface CareerAgentState {
   candidateName: string;
   activeJobId?: string;
   lastScore?: number;
-}
-
-function extractTextFromParts(parts: UIMessage["parts"]): string {
-  let text = "";
-  for (const part of parts) {
-    if (part.type === "text") {
-      text += part.text;
-    }
-  }
-  return text;
-}
-
-function convertUiMessagesToModelMessages(messages: UIMessage[]): ModelMessage[] {
-  const modelMessages: ModelMessage[] = [];
-  for (const msg of messages) {
-    if (msg.role === "user" || msg.role === "assistant") {
-      modelMessages.push({
-        role: msg.role,
-        content: extractTextFromParts(msg.parts),
-      });
-    }
-  }
-  return modelMessages;
 }
 
 export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
@@ -322,10 +299,11 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     };
 
     const result = streamText({
-      model: workersai("@cf/meta/llama-3.3-70b-instruct"),
+      model: workersai("@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
       system: getSystemPrompt(candidate),
-      messages: convertUiMessagesToModelMessages(this.messages),
+      messages: await convertToModelMessages(this.messages),
       tools,
+      stopWhen: isStepCount(5),
       abortSignal: options?.abortSignal,
     });
 

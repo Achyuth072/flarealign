@@ -203,7 +203,7 @@ export function getFallbackSynthesis(
 }
 
 /**
- * Executes Cloudflare Workers AI synthesis using @cf/meta/llama-3.3-70b-instruct with resilient fallback.
+ * Executes Cloudflare Workers AI synthesis using @cf/meta/llama-3.3-70b-instruct-fp8-fast with resilient fallback.
  */
 export async function generateTailoringSynthesis(
   aiBinding: Ai | undefined | null,
@@ -215,7 +215,7 @@ export async function generateTailoringSynthesis(
     try {
       const prompt = buildSynthesisPrompt(candidate, job, fitResult);
       const response = await (aiBinding as { run: (model: string, input: unknown) => Promise<unknown> }).run(
-        "@cf/meta/llama-3.3-70b-instruct",
+        "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
         {
           messages: [
             {
