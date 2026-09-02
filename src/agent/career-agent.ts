@@ -179,6 +179,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
   ) {
     this.initDatabase();
     const candidate = await this.getCandidate();
+    console.log("[CareerAgent] onChatMessage turn started. History length:", this.messages.length);
     const workersai = createWorkersAI({
       binding: this.env.AI as unknown as Extract<Parameters<typeof createWorkersAI>[0], { binding: unknown }>["binding"],
     });
@@ -281,9 +282,11 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           executiveSummary: z.string().describe("Tailored 2-3 sentence executive summary"),
         }),
         execute: async (args) => {
+          console.log("[CareerAgent] Executing tailorResume:", { jobTitle: args.jobTitle, company: args.company });
           try {
             const activeJobId = this.ensureActiveJobId(args.jobTitle, args.company);
             const applicationId = this.upsertApplication(activeJobId, { tailored_resume: args });
+            console.log("[CareerAgent] Successfully saved tailored resume, applicationId:", applicationId);
 
             return {
               applicationId,
@@ -293,6 +296,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
               tailoredBullets: args.tailoredBullets,
             };
           } catch (err) {
+            console.error("[CareerAgent] Error in tailorResume execute:", err);
             return {
               error: true,
               message: `Failed to persist tailored resume: ${err instanceof Error ? err.message : String(err)}`,

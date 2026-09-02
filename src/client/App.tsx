@@ -48,7 +48,14 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
     );
   }
 
-  if (isError) {
+  const payloadObj = typeof payload === "object" && payload !== null ? (payload as Record<string, unknown>) : null;
+  const isPayloadError = payloadObj?.error === true;
+
+  if (isError || isPayloadError) {
+    const errorMsg =
+      (payloadObj?.message as string) ||
+      part.errorText ||
+      (part.error ? String(part.error) : "An error occurred during tool execution.");
     return (
       <div
         key={pIdx}
@@ -57,9 +64,7 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
         <div className="font-bold text-red-400 flex items-center gap-2">
           <AlertCircle className="w-4 h-4" /> Tool Execution Error: {toolName}
         </div>
-        <p className="text-xs text-red-300">
-          {part.errorText || (part.error ? String(part.error) : "An error occurred during tool execution.")}
-        </p>
+        <p className="text-xs text-red-300">{errorMsg}</p>
       </div>
     );
   }
