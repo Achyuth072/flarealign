@@ -176,4 +176,53 @@ describe("withDedupedToolCallEnvelopes", () => {
         '"tailoredBullets": ["Shipped Workers"]}'
     );
   });
+
+  it("delivers valid tool input from a stream with CRLF (\\r\\n\\r\\n) boundaries", async () => {
+    function crlfSseStream(events: unknown[]): ReadableStream<Uint8Array> {
+      const encoder = new TextEncoder();
+      return new ReadableStream({
+        start(controller) {
+          for (const event of events) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\r\n\r\n`));
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\r\n\r\n"));
+          controller.close();
+        },
+      });
+    }
+
+    const { input, error } = await runToolCall(
+      withDedupedToolCallEnvelopes({ run: async () => crlfSseStream(CAPTURED_EVENTS) } as unknown as Binding)
+    );
+    expect(error).toBeUndefined();
+    expect(input).toEqual(EXPECTED_INPUT);
+  });
+
+  it("handles streams fragmented across arbitrary byte chunks", async () => {
+    function fragmentedSseStream(events: unknown[], chunkSize = 5): ReadableStream<Uint8Array> {
+      const encoder = new TextEncoder();
+      let fullText = "";
+      for (const event of events) {
+        fullText += `data: ${JSON.stringify(event)}\r\n\r\n`;
+      }
+      fullText += "data: [DONE]\r\n\r\n";
+      const fullBytes = encoder.encode(fullText);
+
+      return new ReadableStream({
+        start(controller) {
+          for (let i = 0; i < fullBytes.length; i += chunkSize) {
+            controller.enqueue(fullBytes.slice(i, i + chunkSize));
+          }
+          controller.close();
+        },
+      });
+    }
+
+    const { input, error } = await runToolCall(
+      withDedupedToolCallEnvelopes({ run: async () => fragmentedSseStream(CAPTURED_EVENTS, 5) } as unknown as Binding)
+    );
+    expect(error).toBeUndefined();
+    expect(input).toEqual(EXPECTED_INPUT);
+  });
 });
+

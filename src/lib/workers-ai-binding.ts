@@ -38,37 +38,47 @@ function dedupeStream(): TransformStream<Uint8Array, Uint8Array> {
   const encoder = new TextEncoder();
   let buffer = "";
 
-  const emit = (frame: string, controller: TransformStreamDefaultController<Uint8Array>) =>
-    controller.enqueue(encoder.encode(dedupeFrame(frame)));
+  const emitLine = (rawLine: string, controller: TransformStreamDefaultController<Uint8Array>) => {
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      return;
+    }
+    const deduped = dedupeLine(trimmed);
+    controller.enqueue(encoder.encode(`${deduped}\n\n`));
+  };
 
   return new TransformStream({
     transform(chunk, controller) {
       buffer += decoder.decode(chunk, { stream: true });
-      let boundary = buffer.indexOf("\n\n");
-      while (boundary !== -1) {
-        emit(buffer.slice(0, boundary), controller);
-        controller.enqueue(encoder.encode("\n\n"));
-        buffer = buffer.slice(boundary + 2);
-        boundary = buffer.indexOf("\n\n");
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        emitLine(line, controller);
       }
     },
     flush(controller) {
       buffer += decoder.decode();
-      if (buffer.length > 0) emit(buffer, controller);
+      if (buffer.trim().length > 0) {
+        emitLine(buffer, controller);
+      }
     },
   });
 }
 
-function dedupeFrame(frame: string): string {
-  if (!frame.startsWith("data: ")) return frame;
-  const payload = frame.slice("data: ".length);
-  if (payload === "[DONE]") return frame;
+function dedupeLine(line: string): string {
+  if (line === "data: [DONE]" || line === "data:[DONE]") {
+    return "data: [DONE]";
+  }
+  if (!line.startsWith("data:") && !line.startsWith("data: ")) {
+    return line;
+  }
 
+  const payload = line.startsWith("data: ") ? line.slice(6) : line.slice(5);
   let chunk: Record<string, unknown>;
   try {
     chunk = JSON.parse(payload);
   } catch {
-    return frame;
+    return line;
   }
 
   const choices = chunk.choices as
@@ -100,5 +110,5 @@ function dedupeFrame(frame: string): string {
     deduped = true;
   }
 
-  return deduped ? `data: ${JSON.stringify(chunk)}` : frame;
+  return deduped ? `data: ${JSON.stringify(chunk)}` : `data: ${payload}`;
 }
