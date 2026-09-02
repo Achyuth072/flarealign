@@ -5,6 +5,7 @@ import { z } from "zod";
 import { computeCompositeFitScore, deriveRecommendation, makeId } from "../lib/scoring";
 import { DEFAULT_CANDIDATE_PROFILE, CandidateProfile } from "../lib/candidate";
 import { getSystemPrompt } from "../lib/prompts";
+import { InterviewPrepSchema } from "../lib/interview";
 
 export interface CareerAgentState {
   candidateId: string;
@@ -232,26 +233,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
 
       generateInterviewPrep: tool({
         description: "Formulate technical and behavioral interview preparation with structured STAR-method responses and systems design focus points.",
-        inputSchema: z.object({
-          jobTitle: z.string(),
-          company: z.string(),
-          technicalQuestions: z.array(
-            z.object({
-              question: z.string(),
-              focusArea: z.string(),
-              keyTalkingPoints: z.array(z.string()),
-            })
-          ).describe("Technical questions and talking points"),
-          behavioralQuestions: z.array(
-            z.object({
-              question: z.string(),
-              situationTask: z.string(),
-              actionTaken: z.string(),
-              resultImpact: z.string(),
-            })
-          ).describe("Behavioral questions with STAR-format answers"),
-          systemDesignFocus: z.array(z.string()).describe("Key distributed architecture & edge design topics"),
-        }),
+        inputSchema: InterviewPrepSchema,
         execute: async (args) => {
           let activeJobId = this.state?.activeJobId;
           const prepId = makeId("prep");

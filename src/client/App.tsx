@@ -15,6 +15,9 @@ import {
   RefreshCw,
   ChevronRight,
   BookOpen,
+  Award,
+  Code2,
+  Target,
 } from "lucide-react";
 import type { CandidateProfile } from "../lib/candidate";
 
@@ -23,6 +26,269 @@ interface ApiResponse<T> {
   candidate?: T;
   workflowInstanceId?: string;
   error?: string;
+}
+
+function InterviewPrepResultView({ data }: { data: any }) {
+  const technicalQuestions = data.technicalQuestions || [];
+  const behavioralQuestions = data.behavioralQuestions || [];
+  const systemDesignFocus = data.systemDesignFocus || [];
+
+  return (
+    <div className="mt-3 space-y-4 rounded-xl bg-[#11131A] border border-[#2B2E3C] p-4 text-xs text-slate-200 shadow-lg">
+      <div className="flex items-center justify-between pb-3 border-b border-[#222530]">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-purple-500/20 text-purple-400 flex items-center justify-center">
+            <BookOpen className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-white text-xs">STAR Interview Preparation</h4>
+            <p className="text-[10px] text-slate-400">
+              {data.jobTitle ? `${data.jobTitle} • ` : ""}{data.company || "Target Role"}
+            </p>
+          </div>
+        </div>
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-mono">
+          Structured STAR
+        </span>
+      </div>
+
+      {/* Behavioral Questions (STAR Method) */}
+      {behavioralQuestions.length > 0 && (
+        <div className="space-y-3">
+          <div className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Award className="w-3.5 h-3.5 text-amber-400" />
+            Behavioral Scenarios (STAR Method)
+          </div>
+          <div className="space-y-3">
+            {behavioralQuestions.map((bq: any, idx: number) => (
+              <div key={idx} className="rounded-lg bg-[#181A24] border border-[#262938] p-3 space-y-2">
+                <div className="font-medium text-slate-100 flex items-start gap-1.5">
+                  <span className="text-amber-400 font-bold">{idx + 1}.</span>
+                  <span>{bq.question}</span>
+                </div>
+                <div className="space-y-2 pt-1">
+                  {bq.situationTask && (
+                    <div className="p-2 rounded bg-[#10192A] border border-sky-900/40 text-[11px] leading-relaxed">
+                      <span className="font-semibold text-sky-400 block mb-0.5 uppercase text-[10px] tracking-wider">
+                        Situation &amp; Task
+                      </span>
+                      <span className="text-slate-300">{bq.situationTask}</span>
+                    </div>
+                  )}
+                  {bq.actionTaken && (
+                    <div className="p-2 rounded bg-[#2A1D10] border border-amber-900/40 text-[11px] leading-relaxed">
+                      <span className="font-semibold text-amber-400 block mb-0.5 uppercase text-[10px] tracking-wider">
+                        Action Taken
+                      </span>
+                      <span className="text-slate-300">{bq.actionTaken}</span>
+                    </div>
+                  )}
+                  {bq.resultImpact && (
+                    <div className="p-2 rounded bg-[#0F261C] border border-emerald-900/40 text-[11px] leading-relaxed">
+                      <span className="font-semibold text-emerald-400 block mb-0.5 uppercase text-[10px] tracking-wider">
+                        Result &amp; Impact
+                      </span>
+                      <span className="text-slate-300">{bq.resultImpact}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Technical Questions */}
+      {technicalQuestions.length > 0 && (
+        <div className="space-y-2.5 pt-2 border-t border-[#222530]">
+          <div className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Code2 className="w-3.5 h-3.5 text-sky-400" />
+            Technical &amp; Domain Questions
+          </div>
+          <div className="space-y-2.5">
+            {technicalQuestions.map((tq: any, idx: number) => (
+              <div key={idx} className="rounded-lg bg-[#181A24] border border-[#262938] p-3 space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-medium text-slate-100">{tq.question}</span>
+                  {tq.focusArea && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 whitespace-nowrap">
+                      {tq.focusArea}
+                    </span>
+                  )}
+                </div>
+                {tq.keyTalkingPoints && tq.keyTalkingPoints.length > 0 && (
+                  <ul className="space-y-1 pl-4 list-disc text-[11px] text-slate-300 pt-1 marker:text-sky-400">
+                    {tq.keyTalkingPoints.map((tp: string, ptIdx: number) => (
+                      <li key={ptIdx}>{tp}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Edge & Systems Design Focus */}
+      {systemDesignFocus.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-[#222530]">
+          <div className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5 text-[#F6821F]" />
+            Systems Design &amp; Architecture Focus
+          </div>
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {systemDesignFocus.map((focus: string, idx: number) => (
+              <span
+                key={idx}
+                className="text-[10px] bg-[#1E2230] text-amber-200/90 border border-amber-500/20 px-2 py-1 rounded-md"
+              >
+                {focus}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScoreJobFitResultView({ data }: { data: any }) {
+  const score = data.compositeScore ?? data.score;
+  const rec = data.recommendation;
+  const breakdown = data.breakdown?.subDimensions || data.subDimensions;
+
+  return (
+    <div className="mt-3 space-y-3 rounded-xl bg-[#11131A] border border-[#2B2E3C] p-4 text-xs text-slate-200 shadow-lg">
+      <div className="flex items-center justify-between pb-2.5 border-b border-[#222530]">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-[#F6821F]/20 text-[#F6821F] flex items-center justify-center">
+            <Sparkles className="w-3.5 h-3.5" />
+          </div>
+          <h4 className="font-semibold text-white text-xs">Role Fit Evaluation</h4>
+        </div>
+        {score !== undefined && (
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-bold text-sm text-white">{score}/100</span>
+            {rec && (
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                  score >= 80
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : score >= 60
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                    : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                }`}
+              >
+                {rec}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {breakdown && (
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
+          <div className="p-2 rounded bg-[#161822] border border-[#242735]">
+            <div className="text-slate-400 text-[10px]">Skills (35%)</div>
+            <div className="font-mono font-bold text-slate-200">{breakdown.skillsFit}%</div>
+          </div>
+          <div className="p-2 rounded bg-[#161822] border border-[#242735]">
+            <div className="text-slate-400 text-[10px]">Experience (30%)</div>
+            <div className="font-mono font-bold text-slate-200">{breakdown.experienceFit}%</div>
+          </div>
+          <div className="p-2 rounded bg-[#161822] border border-[#242735]">
+            <div className="text-slate-400 text-[10px]">Domain (20%)</div>
+            <div className="font-mono font-bold text-slate-200">{breakdown.domainFit}%</div>
+          </div>
+          <div className="p-2 rounded bg-[#161822] border border-[#242735]">
+            <div className="text-slate-400 text-[10px]">Trajectory (15%)</div>
+            <div className="font-mono font-bold text-slate-200">{breakdown.trajectoryFit}%</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TailorResumeResultView({ data }: { data: any }) {
+  const bullets = data.tailoredBullets || [];
+
+  return (
+    <div className="mt-3 space-y-3 rounded-xl bg-[#11131A] border border-[#2B2E3C] p-4 text-xs text-slate-200 shadow-lg">
+      <div className="flex items-center justify-between pb-2.5 border-b border-[#222530]">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-sky-500/20 text-sky-400 flex items-center justify-center">
+            <FileText className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-white text-xs">Tailored Resume Output</h4>
+            {data.jobTitle && (
+              <p className="text-[10px] text-slate-400">
+                {data.jobTitle} • {data.company || "Target Role"}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {data.executiveSummary && (
+        <div className="p-2.5 rounded-lg bg-[#161822] border border-[#242735] text-[11px] text-slate-300 leading-relaxed">
+          <div className="text-[10px] uppercase font-semibold text-slate-400 mb-1">Executive Summary</div>
+          {data.executiveSummary}
+        </div>
+      )}
+
+      {bullets.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-[10px] uppercase font-semibold text-slate-400">Tailored Impact Bullets</div>
+          <ul className="space-y-1.5 text-[11px] text-slate-300">
+            {bullets.map((b: string, idx: number) => (
+              <li key={idx} className="flex items-start gap-2 bg-[#161822] p-2 rounded border border-[#242735]">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function renderToolPart(part: any, pIdx: number) {
+  const toolName = part.type?.startsWith("tool-")
+    ? part.type.replace("tool-", "")
+    : part.toolName || part.type;
+  const payload = part.output || part.input;
+
+  if (toolName === "generateInterviewPrep" && payload) {
+    return <InterviewPrepResultView key={pIdx} data={payload} />;
+  }
+
+  if (toolName === "scoreJobFit" && payload) {
+    return <ScoreJobFitResultView key={pIdx} data={payload} />;
+  }
+
+  if (toolName === "tailorResume" && payload) {
+    return <TailorResumeResultView key={pIdx} data={payload} />;
+  }
+
+  return (
+    <div
+      key={pIdx}
+      className="mt-2 p-2.5 rounded-lg bg-[#101116] border border-[#2B2E3C] text-[11px] font-mono text-slate-300"
+    >
+      <div className="flex items-center gap-1.5 text-amber-400 font-semibold mb-1">
+        <Terminal className="w-3.5 h-3.5" />
+        Tool: {toolName}
+      </div>
+      {payload && (
+        <pre className="text-[10px] text-slate-400 overflow-x-auto max-h-40 p-1.5 bg-[#0B0C0E] rounded">
+          {JSON.stringify(payload, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
 }
 
 export function App() {
@@ -317,7 +583,7 @@ export function App() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full pt-2">
                 <button
                   onClick={() =>
                     handleQuickAction(
@@ -330,7 +596,7 @@ export function App() {
                     <Sparkles className="w-3.5 h-3.5 text-[#F6821F]" /> 1. Fit Scoring
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    Analyze multi-dimensional fit (skills, experience, trajectory).
+                    Analyze multi-dimensional fit.
                   </div>
                 </button>
 
@@ -343,10 +609,26 @@ export function App() {
                   className="p-3 text-left rounded-lg bg-[#14151B] hover:bg-[#1C1E26] border border-[#22242B] text-xs text-slate-300 transition-all hover:border-sky-500/50"
                 >
                   <div className="font-semibold text-white mb-0.5 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-sky-400" /> 2. Resume Tailoring
+                    <FileText className="w-3.5 h-3.5 text-sky-400" /> 2. Resume Bullets
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    Craft tailored bullets aligned with edge platforms.
+                    Craft tailored bullets for edge.
+                  </div>
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleQuickAction(
+                      "Generate comprehensive interview preparation with technical questions, STAR-method behavioral stories, and edge systems architecture topics for Cloudflare."
+                    )
+                  }
+                  className="p-3 text-left rounded-lg bg-[#14151B] hover:bg-[#1C1E26] border border-[#22242B] text-xs text-slate-300 transition-all hover:border-purple-500/50"
+                >
+                  <div className="font-semibold text-white mb-0.5 flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-purple-400" /> 3. STAR Prep
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    STAR answers & systems topics.
                   </div>
                 </button>
               </div>
@@ -381,18 +663,8 @@ export function App() {
                             </div>
                           );
                         }
-                        if (part.type.startsWith("tool-")) {
-                          return (
-                            <div
-                              key={pIdx}
-                              className="mt-2 p-2.5 rounded-lg bg-[#101116] border border-[#2B2E3C] text-[11px] font-mono text-slate-300"
-                            >
-                              <div className="flex items-center gap-1.5 text-amber-400 font-semibold mb-1">
-                                <Terminal className="w-3.5 h-3.5" />
-                                Tool Call: {part.type}
-                              </div>
-                            </div>
-                          );
+                        if (part.type.startsWith("tool-") || part.type === "dynamic-tool") {
+                          return renderToolPart(part, pIdx);
                         }
                         return null;
                       })}

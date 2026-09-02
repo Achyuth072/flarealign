@@ -18,6 +18,12 @@ describe("Candidate Profile and Prompts", () => {
     expect(prompt).toContain("scoreJobFit");
     expect(prompt).toContain("tailorResume");
     expect(prompt).toContain("generateInterviewPrep");
+    expect(prompt).toContain("technicalQuestions");
+    expect(prompt).toContain("behavioralQuestions");
+    expect(prompt).toContain("situationTask");
+    expect(prompt).toContain("actionTaken");
+    expect(prompt).toContain("resultImpact");
+    expect(prompt).toContain("systemDesignFocus");
     expect(prompt).toContain("triggerBatchWorkflow");
     expect(prompt).toContain("getCandidateProfile");
     expect(prompt).toContain("Cloudflare");
