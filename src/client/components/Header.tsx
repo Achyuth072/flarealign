@@ -56,14 +56,13 @@ export function Header({
           <span className="text-[#80808A]">Llama 3.3 70B</span>
         </div>
 
-        {/* User Avatar / Profile */}
-        <button
-          onClick={onEditProfile}
-          className="w-7 h-7 rounded-full bg-[#1A1B20] border border-[#282A34] flex items-center justify-center text-[#D0D2DC] hover:text-white hover:border-[#3E4252] transition-colors"
-          title="Candidate Profile"
+        {/* User Avatar / Profile Indicator */}
+        <div
+          className="w-7 h-7 rounded-full bg-[#1A1B20] border border-[#282A34] flex items-center justify-center text-[#D0D2DC]"
+          title={candidate ? `${candidate.name} (${candidate.targetRole})` : "Active Profile"}
         >
           <User className="w-3.5 h-3.5" />
-        </button>
+        </div>
       </div>
     </header>
   );

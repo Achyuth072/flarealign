@@ -1,13 +1,12 @@
 import React, { useState } from "react";
-import { Copy, Check, Edit2, Info, ChevronDown, ChevronUp, Cpu, Database, GitBranch, Zap } from "lucide-react";
+import { Copy, Check, Info, ChevronDown, ChevronUp, Cpu, Database, GitBranch, Zap } from "lucide-react";
 import type { CandidateProfile } from "../types";
 
 interface AgentTelemetryPanelProps {
   candidate: CandidateProfile | null;
-  onEditProfile: () => void;
 }
 
-export function AgentTelemetryPanel({ candidate, onEditProfile }: AgentTelemetryPanelProps) {
+export function AgentTelemetryPanel({ candidate }: AgentTelemetryPanelProps) {
   const [copiedId, setCopiedId] = useState(false);
   const [isLimitsOpen, setIsLimitsOpen] = useState(false);
 
@@ -101,13 +100,9 @@ export function AgentTelemetryPanel({ candidate, onEditProfile }: AgentTelemetry
         <div className="p-3 rounded-lg bg-[#141518] border border-[#22242B] space-y-2.5">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-semibold text-white">Candidate State</h4>
-            <button
-              onClick={onEditProfile}
-              className="p-1 text-[#80808A] hover:text-white transition-colors"
-              title="Edit Profile"
-            >
-              <Edit2 className="w-3 h-3" />
-            </button>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#1C1E24] text-[#80808A] border border-[#282A34]">
+              SQLite
+            </span>
           </div>
 
           <div className="space-y-1 text-[11px]">

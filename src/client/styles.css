@@ -6,6 +6,11 @@
   color-scheme: dark;
 }
 
+/* Prevent DaisyUI modal scroll-lock from injecting scrollbar-gutter on root and shifting the background layout */
+:root:has(:is(.modal-open, .modal:target, .modal-toggle:checked + .modal, .modal[open])) {
+  scrollbar-gutter: auto;
+}
+
 body {
   margin: 0;
   padding: 0;

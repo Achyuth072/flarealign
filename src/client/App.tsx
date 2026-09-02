@@ -429,7 +429,6 @@ export function App() {
         {/* Right Telemetry Panel */}
         <AgentTelemetryPanel
           candidate={candidate}
-          onEditProfile={() => setIsEditModalOpen(true)}
         />
       </div>
 
