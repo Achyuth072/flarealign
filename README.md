@@ -15,6 +15,8 @@ The agent can:
 
 A user talks to the agent through a chat window that shows replies in real time.
 
+> **Note**: the live demo may show "you have used up your daily free allocation of neurons" if tested outside reset hours. This is Cloudflare Workers AI's free-tier cap (10,000 neurons/day, resets 00:00 UTC), not an application error. Core logic is verified independently by the automated test suite (143 tests, see below).
+
 ## Technology
 
 - **React** and **Vite**: the user interface.
