@@ -5,17 +5,17 @@ Accurate, calibrated multi-dimensional fit scoring and complete unit test covera
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** closed
 
 ## Acceptance criteria
 
-- [ ] `computeCompositeFitScore` accurately calculates weighted scores and correctly handles all-zero (0) and all-100 (100) sub-dimension values without NaN or overflow
-- [ ] `deriveRecommendation` correctly returns:
+- [x] `computeCompositeFitScore` accurately calculates weighted scores and correctly handles all-zero (0) and all-100 (100) sub-dimension values without NaN or overflow
+- [x] `deriveRecommendation` correctly returns:
   - "Strong Fit" for scores >= 80 (verifying exact boundary at 80 vs 79)
   - "Potential Fit" for scores 60..79 (verifying exact boundary at 60 vs 59)
   - "Low Fit" for scores < 60
-- [ ] Zod schemas `SubDimensionsSchema` and `FitScoreResultSchema` are exported from `src/lib/scoring.ts` and verified with unit tests
-- [ ] `validateWeights` enforces total sum of 100% (1.0) and non-negative bounds
-- [ ] Inverted experience scoring heuristic in `tailoring-workflow.ts` is fixed so higher seniority requirements appropriately match candidate experience level (3 YOE)
-- [ ] `npm test` runs vitest and passes all scoring tests with 100% branch coverage
+- [x] Zod schemas `SubDimensionsSchema` and `FitScoreResultSchema` are exported from `src/lib/scoring.ts` and verified with unit tests
+- [x] `validateWeights` enforces total sum of 100% (1.0) and non-negative bounds
+- [x] Inverted experience scoring heuristic in `tailoring-workflow.ts` is fixed so higher seniority requirements appropriately match candidate experience level (3 YOE)
+- [x] `npm test` runs vitest and passes all scoring tests with 100% branch coverage
 

@@ -39,7 +39,7 @@ export const SubDimensionsSchema = z.object({
 
 export const FitScoreResultSchema = z.object({
   score: z.number().int().min(0).max(100),
-  recommendation: z.enum(["APPLY", "REVIEW", "IGNORE"]),
+  recommendation: z.enum(["Strong Fit", "Potential Fit", "Low Fit"]),
   subDimensions: SubDimensionsSchema,
   strengths: z.array(z.string()),
   gaps: z.array(z.string()),
@@ -48,6 +48,7 @@ export const FitScoreResultSchema = z.object({
 });
 
 export type FitScoreResult = z.infer<typeof FitScoreResultSchema>;
+export type FitRecommendation = "Strong Fit" | "Potential Fit" | "Low Fit";
 
 export function validateWeights(weights: FitScoreWeights): void {
   const sum = weights.skills + weights.experience + weights.domain + weights.trajectory;
@@ -63,6 +64,9 @@ export function validateWeights(weights: FitScoreWeights): void {
   ];
 
   for (const [key, val] of entries) {
+    if (val < 0) {
+      throw new Error(`Weight for ${key} (${val}) must be non-negative`);
+    }
     if (val < MIN_WEIGHT || val > MAX_WEIGHT) {
       throw new Error(`Weight for ${key} (${val}) must be within [${MIN_WEIGHT}, ${MAX_WEIGHT}]`);
     }
@@ -75,19 +79,40 @@ export function computeCompositeFitScore(
 ): number {
   validateWeights(weights);
 
+  const skillsFit =
+    typeof subScores.skillsFit === "number" && !Number.isNaN(subScores.skillsFit)
+      ? subScores.skillsFit
+      : 0;
+  const experienceFit =
+    typeof subScores.experienceFit === "number" && !Number.isNaN(subScores.experienceFit)
+      ? subScores.experienceFit
+      : 0;
+  const domainFit =
+    typeof subScores.domainFit === "number" && !Number.isNaN(subScores.domainFit)
+      ? subScores.domainFit
+      : 0;
+  const trajectoryFit =
+    typeof subScores.trajectoryFit === "number" && !Number.isNaN(subScores.trajectoryFit)
+      ? subScores.trajectoryFit
+      : 0;
+
   const rawScore =
-    subScores.skillsFit * weights.skills +
-    subScores.experienceFit * weights.experience +
-    subScores.domainFit * weights.domain +
-    subScores.trajectoryFit * weights.trajectory;
+    skillsFit * weights.skills +
+    experienceFit * weights.experience +
+    domainFit * weights.domain +
+    trajectoryFit * weights.trajectory;
+
+  if (Number.isNaN(rawScore)) {
+    return 0;
+  }
 
   const rounded = Math.round(rawScore);
   return Math.min(100, Math.max(0, rounded));
 }
 
-export function deriveRecommendation(score: number): "APPLY" | "REVIEW" | "IGNORE" {
-  if (score >= 80) return "APPLY";
-  if (score >= 60) return "REVIEW";
-  return "IGNORE";
+export function deriveRecommendation(score: number): FitRecommendation {
+  if (score >= 80) return "Strong Fit";
+  if (score >= 60) return "Potential Fit";
+  return "Low Fit";
 }
 

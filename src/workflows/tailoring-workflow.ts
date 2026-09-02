@@ -53,16 +53,35 @@ export class TailoringWorkflow extends WorkflowEntrypoint<Env, TailoringWorkflow
       // Proportional score: 0 to 100 based on relevant skill coverage (4+ matches gives 90+)
       const skillsFit = Math.min(100, Math.max(20, Math.round((skillsMatches / 5) * 100)));
 
-      // Experience heuristics based on candidate's 3 YOE
-      let experienceFit = 90; // Standard mid-level fit
-      if (titleLower.includes("principal") || descLower.includes("principal engineer") || descLower.includes("8+ years") || descLower.includes("10+ years")) {
-        experienceFit = 65;
-      } else if (titleLower.includes("staff") || descLower.includes("staff engineer") || descLower.includes("5+ years")) {
-        experienceFit = 75;
-      } else if (titleLower.includes("senior") || descLower.includes("3+ years") || descLower.includes("4+ years")) {
+      // Experience heuristics calibrated for candidate's 3 YOE
+      let experienceFit = 95; // Default mid-level fit (ideal match for 3 YOE)
+      if (
+        titleLower.includes("principal") ||
+        descLower.includes("principal engineer") ||
+        descLower.includes("8+ years") ||
+        descLower.includes("10+ years")
+      ) {
+        experienceFit = 55;
+      } else if (
+        titleLower.includes("staff") ||
+        descLower.includes("staff engineer") ||
+        descLower.includes("6+ years") ||
+        descLower.includes("5+ years")
+      ) {
+        experienceFit = 70;
+      } else if (
+        titleLower.includes("senior") ||
+        descLower.includes("4+ years") ||
+        descLower.includes("5 years")
+      ) {
         experienceFit = 85;
-      } else if (titleLower.includes("junior") || titleLower.includes("entry") || descLower.includes("1-3 years")) {
-        experienceFit = 95;
+      } else if (
+        titleLower.includes("junior") ||
+        titleLower.includes("entry") ||
+        descLower.includes("1-2 years") ||
+        descLower.includes("0-2 years")
+      ) {
+        experienceFit = 90;
       }
 
       // Domain heuristics

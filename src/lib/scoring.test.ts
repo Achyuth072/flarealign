@@ -26,7 +26,7 @@ describe("Scoring Domain Logic", () => {
     expect(score).toBe(84);
   });
 
-  it("handles edge case: all-zero sub-scores", () => {
+  it("handles edge case: all-zero sub-scores without NaN or overflow", () => {
     const subScores = {
       skillsFit: 0,
       experienceFit: 0,
@@ -35,10 +35,11 @@ describe("Scoring Domain Logic", () => {
     };
     const score = computeCompositeFitScore(subScores);
     expect(score).toBe(0);
-    expect(deriveRecommendation(score)).toBe("IGNORE");
+    expect(Number.isNaN(score)).toBe(false);
+    expect(deriveRecommendation(score)).toBe("Low Fit");
   });
 
-  it("handles edge case: all-100 sub-scores", () => {
+  it("handles edge case: all-100 sub-scores without NaN or overflow", () => {
     const subScores = {
       skillsFit: 100,
       experienceFit: 100,
@@ -47,7 +48,8 @@ describe("Scoring Domain Logic", () => {
     };
     const score = computeCompositeFitScore(subScores);
     expect(score).toBe(100);
-    expect(deriveRecommendation(score)).toBe("APPLY");
+    expect(Number.isNaN(score)).toBe(false);
+    expect(deriveRecommendation(score)).toBe("Strong Fit");
   });
 
   it("computes scores with custom valid weights", () => {
@@ -66,23 +68,24 @@ describe("Scoring Domain Logic", () => {
     // 100*0.4 + 50*0.3 + 80*0.15 + 60*0.15 = 40 + 15 + 12 + 9 = 76
     const score = computeCompositeFitScore(subScores, customWeights);
     expect(score).toBe(76);
-    expect(deriveRecommendation(score)).toBe("REVIEW");
+    expect(deriveRecommendation(score)).toBe("Potential Fit");
   });
 
   it("derives correct recommendation based on score thresholds and exact boundaries", () => {
-    expect(deriveRecommendation(100)).toBe("APPLY");
-    expect(deriveRecommendation(85)).toBe("APPLY");
-    expect(deriveRecommendation(80)).toBe("APPLY"); // Exact threshold
-    expect(deriveRecommendation(79)).toBe("REVIEW"); // Exact boundary below 80
-    expect(deriveRecommendation(60)).toBe("REVIEW"); // Exact threshold
-    expect(deriveRecommendation(59)).toBe("IGNORE"); // Exact boundary below 60
-    expect(deriveRecommendation(10)).toBe("IGNORE");
-    expect(deriveRecommendation(0)).toBe("IGNORE");
+    expect(deriveRecommendation(100)).toBe("Strong Fit");
+    expect(deriveRecommendation(85)).toBe("Strong Fit");
+    expect(deriveRecommendation(80)).toBe("Strong Fit"); // Exact boundary: >= 80
+    expect(deriveRecommendation(79)).toBe("Potential Fit"); // Exact boundary: 60..79
+    expect(deriveRecommendation(60)).toBe("Potential Fit"); // Exact boundary: >= 60
+    expect(deriveRecommendation(59)).toBe("Low Fit"); // Exact boundary: < 60
+    expect(deriveRecommendation(10)).toBe("Low Fit");
+    expect(deriveRecommendation(0)).toBe("Low Fit");
   });
 
-  it("validates weights sum and bounds", () => {
+  it("validates weights sum, non-negative bounds, and range limits", () => {
     expect(() => validateWeights(DEFAULT_FIT_SCORE_WEIGHTS)).not.toThrow();
 
+    // Sum != 1.0
     expect(() =>
       validateWeights({
         skills: 0.5,
@@ -92,6 +95,17 @@ describe("Scoring Domain Logic", () => {
       })
     ).toThrow(/Scoring weights must sum to 1.0/);
 
+    // Negative weight bound
+    expect(() =>
+      validateWeights({
+        skills: -0.1,
+        experience: 0.5,
+        domain: 0.3,
+        trajectory: 0.3,
+      })
+    ).toThrow(/must be non-negative|must be within/);
+
+    // Exceeds max weight
     expect(() =>
       validateWeights({
         skills: 0.6,
@@ -101,6 +115,7 @@ describe("Scoring Domain Logic", () => {
       })
     ).toThrow(/must be within/);
 
+    // Below min weight
     expect(() =>
       validateWeights({
         skills: 0.05,
@@ -131,7 +146,7 @@ describe("Scoring Domain Logic", () => {
 
     const validResult = {
       score: 85,
-      recommendation: "APPLY" as const,
+      recommendation: "Strong Fit" as const,
       subDimensions: validSub,
       strengths: ["Strong TypeScript", "Cloudflare Workers experience"],
       gaps: ["No Go experience required"],
@@ -162,6 +177,19 @@ describe("Scoring Domain Logic", () => {
     expect(id2).toMatch(/^job-\d+-[a-z0-9]+$/);
     expect(scoreId).toMatch(/^score-\d+-[a-z0-9]+$/);
     expect(id1).not.toBe(id2);
+  });
+
+  it("handles NaN and non-number sub-dimension values gracefully without crashing", () => {
+    const invalidSubScores = {
+      skillsFit: NaN,
+      experienceFit: 80,
+      domainFit: (undefined as unknown) as number,
+      trajectoryFit: 60,
+    };
+    const score = computeCompositeFitScore(invalidSubScores);
+    expect(Number.isNaN(score)).toBe(false);
+    expect(score).toBeGreaterThanOrEqual(0);
+    expect(score).toBeLessThanOrEqual(100);
   });
 });
 
