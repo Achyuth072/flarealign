@@ -11,26 +11,26 @@ export function FitScoreView({ data }: { data: ScoreJobFitData }) {
   const reasoning = data.breakdown?.reasoning;
 
   return (
-    <div className="card bg-base-100 border border-base-300 mt-3 overflow-hidden">
+    <div className="card bg-[#141518] border border-[#2F333E] mt-3 overflow-hidden text-[#CBD5E1]">
       {/* Header bar */}
-      <div className="px-4 py-3 border-b border-base-300 bg-base-200 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-[#2F333E] bg-[#0E0F12] flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary/15 text-primary flex items-center justify-center font-bold">
-            <Sparkles className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-[#F6821F]/20 text-[#FB923C] flex items-center justify-center font-bold" aria-hidden="true">
+            <Sparkles className="w-4 h-4 text-[#FB923C]" />
           </div>
           <div>
-            <h4 className="font-bold text-base-content text-xs flex items-center gap-2">
+            <h4 className="font-bold text-white text-xs flex items-center gap-2">
               Role Fit Evaluation
-              <span className="badge badge-neutral badge-xs font-mono text-base-content/70 border-base-300">
+              <span className="badge badge-neutral badge-sm font-mono text-[#CBD5E1] border border-[#3B3F4E]">
                 Workers AI Heuristics
               </span>
             </h4>
-            <p className="text-[11px] text-base-content/60">Weighted 4-dimension composite score</p>
+            <p className="text-xs text-[#94A3B8]">Weighted 4-dimension composite score</p>
           </div>
         </div>
 
         {rec && (
-          <span className="badge badge-neutral font-medium font-mono text-xs px-2.5 py-1 text-primary border-base-300">
+          <span className="px-2.5 py-1 rounded bg-[#1E2026] text-[#FB923C] border border-[#3B3F4E] font-bold font-mono text-xs">
             {rec}
           </span>
         )}
@@ -40,20 +40,24 @@ export function FitScoreView({ data }: { data: ScoreJobFitData }) {
         {/* Score & Sub-dimensions */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
           {/* Main Score Box */}
-          <div className="md:col-span-4 flex flex-col items-center justify-center p-4 rounded-xl bg-base-200 border border-base-300">
+          <div className="md:col-span-4 flex flex-col items-center justify-center p-4 rounded-xl bg-[#0E0F12] border border-[#2F333E]">
             <div
-              className="radial-progress text-primary font-mono font-bold text-2xl"
+              className="radial-progress text-[#FB923C] font-mono font-bold text-2xl"
               style={{
                 "--value": score,
                 "--size": "5.5rem",
                 "--thickness": "6px",
               } as React.CSSProperties}
               role="progressbar"
+              aria-valuenow={score}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Composite Fit Score: ${score} percent`}
             >
               {score}
             </div>
-            <span className="mt-2 text-xs font-semibold text-base-content font-mono">Composite Fit Index</span>
-            <span className="text-[10px] text-base-content/50 font-mono">Target: 80+ for Strong Fit</span>
+            <span className="mt-2 text-xs font-bold text-white font-mono">Composite Fit Index</span>
+            <span className="text-xs text-[#94A3B8] font-mono">Target: 80+ for Strong Fit</span>
           </div>
 
           {/* Sub-dimensions */}
@@ -65,17 +69,18 @@ export function FitScoreView({ data }: { data: ScoreJobFitData }) {
                 { label: "Edge & Domain Match", weight: "20%", val: breakdown.domainFit },
                 { label: "Career Trajectory", weight: "15%", val: breakdown.trajectoryFit },
               ].map((dim, idx) => (
-                <div key={idx} className="p-2.5 rounded-lg bg-base-200 border border-base-300 space-y-1.5">
+                <div key={idx} className="p-2.5 rounded-lg bg-[#0E0F12] border border-[#2F333E] space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-base-content/80 flex items-center gap-1 font-mono text-xs">
-                      {dim.label} <span className="text-[10px] text-base-content/40">({dim.weight})</span>
+                    <span className="text-[#CBD5E1] flex items-center gap-1.5 font-mono text-xs">
+                      {dim.label} <span className="text-xs text-[#94A3B8]">({dim.weight})</span>
                     </span>
-                    <span className="font-mono font-bold text-base-content">{dim.val}%</span>
+                    <span className="font-mono font-bold text-white">{dim.val}%</span>
                   </div>
                   <progress
-                    className="progress progress-primary w-full h-2 bg-base-300"
+                    className="progress progress-primary w-full h-2.5 bg-[#1E2026]"
                     value={dim.val}
                     max="100"
+                    aria-label={`${dim.label}: ${dim.val} percent`}
                   />
                 </div>
               ))}
@@ -85,16 +90,16 @@ export function FitScoreView({ data }: { data: ScoreJobFitData }) {
 
         {/* Strengths & Growth Areas */}
         {(strengths.length > 0 || gaps.length > 0) && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-base-300">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#2F333E]">
             {strengths.length > 0 && (
-              <div className="p-3 rounded-lg bg-base-200 border border-base-300 space-y-1.5">
-                <div className="text-[11px] font-bold text-base-content flex items-center gap-1 uppercase font-mono tracking-wider">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Key Strengths
+              <div className="p-3 rounded-lg bg-[#0E0F12] border border-[#2F333E] space-y-2">
+                <div className="text-xs font-bold text-white flex items-center gap-1.5 uppercase font-mono tracking-wider">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" aria-hidden="true" /> Key Strengths
                 </div>
-                <ul className="space-y-1 text-xs text-base-content/80">
+                <ul className="space-y-1 text-xs text-[#CBD5E1]">
                   {strengths.map((str, idx) => (
-                    <li key={idx} className="flex items-start gap-1.5">
-                      <span className="text-primary mt-0.5">•</span>
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-[#FB923C] font-bold mt-0.5" aria-hidden="true">•</span>
                       <span>{str}</span>
                     </li>
                   ))}
@@ -103,14 +108,14 @@ export function FitScoreView({ data }: { data: ScoreJobFitData }) {
             )}
 
             {gaps.length > 0 && (
-              <div className="p-3 rounded-lg bg-base-200 border border-base-300 space-y-1.5">
-                <div className="text-[11px] font-bold text-base-content flex items-center gap-1 uppercase font-mono tracking-wider">
-                  <AlertCircle className="w-3.5 h-3.5 text-base-content/50" /> Growth Areas
+              <div className="p-3 rounded-lg bg-[#0E0F12] border border-[#2F333E] space-y-2">
+                <div className="text-xs font-bold text-white flex items-center gap-1.5 uppercase font-mono tracking-wider">
+                  <AlertCircle className="w-4 h-4 text-amber-400" aria-hidden="true" /> Growth Areas
                 </div>
-                <ul className="space-y-1 text-xs text-base-content/80">
+                <ul className="space-y-1 text-xs text-[#CBD5E1]">
                   {gaps.map((gap, idx) => (
-                    <li key={idx} className="flex items-start gap-1.5">
-                      <span className="text-base-content/50 mt-0.5">•</span>
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-amber-400 font-bold mt-0.5" aria-hidden="true">•</span>
                       <span>{gap}</span>
                     </li>
                   ))}
@@ -122,9 +127,9 @@ export function FitScoreView({ data }: { data: ScoreJobFitData }) {
 
         {/* Reasoning */}
         {reasoning && (
-          <div className="p-3 rounded-lg bg-base-200 border border-base-300 text-xs text-base-content/80 leading-relaxed">
-            <span className="font-bold text-base-content block mb-1 uppercase font-mono text-[10px] tracking-wider flex items-center gap-1.5">
-              <Award className="w-3.5 h-3.5 text-primary" /> Evaluation Synthesis
+          <div className="p-3.5 rounded-lg bg-[#0E0F12] border border-[#2F333E] text-xs text-[#CBD5E1] leading-relaxed">
+            <span className="font-bold text-white block mb-1.5 uppercase font-mono text-xs tracking-wider flex items-center gap-1.5">
+              <Award className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> Evaluation Synthesis
             </span>
             {reasoning}
           </div>

@@ -33,77 +33,89 @@ export function AgentSidebar({
   const [isCopilotOpen, setIsCopilotOpen] = useState(true);
 
   return (
-    <aside className="w-64 border-r border-[#22242B] bg-[#0E0F12] flex flex-col justify-between hidden md:flex shrink-0 h-full text-xs text-[#90909A] select-none font-sans overflow-hidden">
-      <div className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
+    <aside
+      aria-label="Agent Navigation Sidebar"
+      className="w-64 border-r border-[#2F333E] bg-[#0E0F12] flex flex-col justify-between hidden md:flex shrink-0 h-full text-xs text-[#CBD5E1] font-sans overflow-hidden"
+    >
+      <nav aria-label="Sidebar Navigation" className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
         {/* Quick Search */}
         <div className="relative">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#60606A]" />
+          <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-[#94A3B8]" aria-hidden="true" />
           <input
             type="text"
             readOnly
+            aria-label="Quick search shortcuts"
             placeholder="Quick search..."
-            className="w-full bg-[#141518] border border-[#22242B] rounded-lg pl-8 pr-12 py-1.5 text-xs text-[#D0D2DC] placeholder-[#60606A] focus:outline-none cursor-pointer"
+            className="w-full bg-[#141518] border border-[#2F333E] focus:border-[#F6821F] rounded-lg pl-8 pr-14 py-2 text-xs text-white placeholder-[#94A3B8] focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
           />
-          <span className="absolute right-2 top-2 text-[10px] font-mono px-1 py-0.2 rounded bg-[#22242B] text-[#80808A] border border-[#2E303A]">
+          <span className="absolute right-2 top-2 text-xs font-mono px-1.5 py-0.5 rounded bg-[#1E2026] text-[#CBD5E1] border border-[#3B3F4E]">
             Ctrl K
           </span>
         </div>
 
         {/* Section: Candidate Profile (Single Source of Truth for SQLite State) */}
         {candidate && (
-          <div className="p-2.5 rounded-lg bg-[#141518] border border-[#22242B] space-y-2">
+          <div className="p-3 rounded-lg bg-[#141518] border border-[#2F333E] space-y-2">
             <div className="flex items-center justify-between">
               <div className="font-semibold text-white text-xs">{candidate.name}</div>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#1C1E24] text-[#F6821F] border border-[#282A34]">
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#1C1E24] text-[#FB923C] border border-[#3B3F4E] font-medium">
                 {candidate.yearsOfExperience}y Exp
               </span>
             </div>
-            <div className="text-[11px] text-[#80808A] truncate">{candidate.targetRole}</div>
+            <div className="text-xs text-[#94A3B8] truncate">{candidate.targetRole}</div>
             <button
               onClick={onEditProfile}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-[#1C1E24] hover:bg-[#242630] text-[#D0D2DC] hover:text-white text-[11px] font-medium border border-[#282A34] transition-colors cursor-pointer"
+              aria-label={`Edit profile for ${candidate.name} in SQLite database`}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-md bg-[#18191E] hover:bg-[#272932] text-white text-xs font-medium border border-[#3B3F4E] hover:border-[#F6821F]/60 transition-colors focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
             >
-              <UserCheck className="w-3.5 h-3.5 text-[#F6821F]" />
+              <UserCheck className="w-4 h-4 text-[#FB923C]" aria-hidden="true" />
               <span>Edit Profile in SQLite</span>
             </button>
           </div>
         )}
 
         {/* Section: Agent Intelligence Workflows */}
-        <div className="space-y-0.5 pt-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-[#60606A] px-2 pb-1">
+        <div className="space-y-1 pt-1">
+          <div className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] px-2 pb-1">
             Agent Intelligence
           </div>
 
           <div>
             <button
               onClick={() => setIsCopilotOpen(!isCopilotOpen)}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[#16171B] hover:text-[#E0E2EC] rounded-lg transition-colors text-left"
+              aria-expanded={isCopilotOpen}
+              aria-controls="instant-workflows-menu"
+              className="w-full flex items-center justify-between px-2.5 py-2 hover:bg-[#18191E] text-white rounded-lg transition-colors text-left focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
             >
-              <span className="flex items-center gap-2 font-medium text-white">
-                <Sparkles className="w-3.5 h-3.5 text-[#F6821F]" /> Instant Workflows
+              <span className="flex items-center gap-2 font-semibold text-white">
+                <Sparkles className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> Instant Workflows
               </span>
               {isCopilotOpen ? (
-                <ChevronDown className="w-3.5 h-3.5 text-[#60606A]" />
+                <ChevronDown className="w-4 h-4 text-[#94A3B8]" aria-hidden="true" />
               ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-[#60606A]" />
+                <ChevronRight className="w-4 h-4 text-[#94A3B8]" aria-hidden="true" />
               )}
             </button>
 
             {isCopilotOpen && (
-              <div className="pl-3 pr-1 py-1 space-y-0.5 border-l border-[#22242B] ml-3.5 mt-0.5">
+              <div
+                id="instant-workflows-menu"
+                role="region"
+                aria-label="Instant Workflows actions"
+                className="pl-3 pr-1 py-1 space-y-1 border-l-2 border-[#2F333E] ml-3.5 mt-1"
+              >
                 <button
                   onClick={() =>
                     onQuickAction(
                       "Evaluate candidate fit for Cloudflare's Software Engineer - Edge Platform & DevEx role in Bengaluru (Greenhouse #8168623)."
                     )
                   }
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left hover:bg-[#16171B] hover:text-white transition-colors group cursor-pointer"
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs font-medium text-[#CBD5E1] hover:text-white hover:bg-[#18191E] transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                 >
                   <span className="flex items-center gap-2">
-                    <Award className="w-3 h-3 text-[#F6821F]" /> 1. Fit Evaluator
+                    <Award className="w-3.5 h-3.5 text-[#FB923C]" aria-hidden="true" /> 1. Fit Evaluator
                   </span>
-                  <span className="text-[9px] font-mono text-[#60606A] group-hover:text-[#F6821F]">35/30%</span>
+                  <span className="text-xs font-mono text-[#94A3B8] group-hover:text-[#FB923C]">35/30%</span>
                 </button>
 
                 <button
@@ -112,12 +124,12 @@ export function AgentSidebar({
                       "Generate targeted resume bullets highlighting my experience with Cloudflare Workers, Durable Objects, and TypeScript."
                     )
                   }
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left hover:bg-[#16171B] hover:text-white transition-colors group cursor-pointer"
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs font-medium text-[#CBD5E1] hover:text-white hover:bg-[#18191E] transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                 >
                   <span className="flex items-center gap-2">
-                    <FileText className="w-3 h-3 text-[#F6821F]" /> 2. Resume Bullets
+                    <FileText className="w-3.5 h-3.5 text-[#FB923C]" aria-hidden="true" /> 2. Resume Bullets
                   </span>
-                  <span className="text-[9px] font-mono text-[#60606A] group-hover:text-[#F6821F]">Edge</span>
+                  <span className="text-xs font-mono text-[#94A3B8] group-hover:text-[#FB923C]">Edge</span>
                 </button>
 
                 <button
@@ -126,12 +138,12 @@ export function AgentSidebar({
                       "Generate comprehensive interview preparation with technical questions, STAR-method behavioral stories, and edge systems architecture topics for Cloudflare."
                     )
                   }
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left hover:bg-[#16171B] hover:text-white transition-colors group cursor-pointer"
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs font-medium text-[#CBD5E1] hover:text-white hover:bg-[#18191E] transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                 >
                   <span className="flex items-center gap-2">
-                    <BookOpen className="w-3 h-3 text-[#F6821F]" /> 3. STAR Prep
+                    <BookOpen className="w-3.5 h-3.5 text-[#FB923C]" aria-hidden="true" /> 3. STAR Prep
                   </span>
-                  <span className="text-[9px] font-mono text-[#60606A] group-hover:text-[#F6821F]">L5/L6</span>
+                  <span className="text-xs font-mono text-[#94A3B8] group-hover:text-[#FB923C]">L5/L6</span>
                 </button>
               </div>
             )}
@@ -139,35 +151,40 @@ export function AgentSidebar({
         </div>
 
         {/* Section: Async Pipeline */}
-        <div className="space-y-0.5 pt-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-[#60606A] px-2 pb-1">
+        <div className="space-y-1 pt-2">
+          <div className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] px-2 pb-1">
             Async Engine
           </div>
 
           <button
             onClick={onTriggerWorkflow}
             disabled={isTriggeringWorkflow}
-            className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[#16171B] hover:text-[#E0E2EC] rounded-lg transition-colors text-left disabled:opacity-50 cursor-pointer"
+            aria-busy={isTriggeringWorkflow}
+            className="w-full flex items-center justify-between px-2.5 py-2 hover:bg-[#18191E] text-white rounded-lg transition-colors text-left disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
           >
-            <span className="flex items-center gap-2">
-              <GitBranch className={`w-3.5 h-3.5 text-[#F6821F] ${isTriggeringWorkflow ? "animate-spin" : ""}`} />
+            <span className="flex items-center gap-2 font-medium">
+              <GitBranch className={`w-4 h-4 text-[#FB923C] ${isTriggeringWorkflow ? "animate-spin" : ""}`} aria-hidden="true" />
               Cloudflare Workflows
             </span>
-            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-[#1A1B20] text-[#F6821F] border border-[#282A34]">
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#18191E] text-[#FB923C] border border-[#3B3F4E] font-medium">
               {isTriggeringWorkflow ? "Running" : "Async"}
             </span>
           </button>
         </div>
 
         {workflowStatus && (
-          <div className="p-2.5 rounded-lg bg-[#141518] border border-[#22242B] text-[11px] font-mono space-y-1 text-[#A0A2AC]">
-            <div className="text-white font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Workflow Dispatch
+          <div
+            role="status"
+            aria-live="polite"
+            className="p-3 rounded-lg bg-[#141518] border border-[#2F333E] text-xs font-mono space-y-1.5 text-[#CBD5E1]"
+          >
+            <div className="text-white font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" aria-hidden="true" /> Workflow Dispatch
             </div>
-            <div className="break-all text-[10px] text-[#80808A]">{workflowStatus}</div>
+            <div className="break-all text-xs text-[#CBD5E1]">{workflowStatus}</div>
           </div>
         )}
-      </div>
+      </nav>
     </aside>
   );
 }

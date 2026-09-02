@@ -42,21 +42,21 @@ export function InterviewPrepView({ data }: { data: Partial<InterviewPrep> }) {
   };
 
   return (
-    <div className="card bg-base-100 border border-base-300 mt-3 overflow-hidden">
+    <div className="card bg-[#141518] border border-[#2F333E] mt-3 overflow-hidden text-[#CBD5E1]">
       {/* Header bar */}
-      <div className="px-4 py-3 border-b border-base-300 bg-base-200 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-[#2F333E] bg-[#0E0F12] flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary/15 text-primary flex items-center justify-center font-bold">
-            <BookOpen className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-[#F6821F]/20 text-[#FB923C] flex items-center justify-center font-bold" aria-hidden="true">
+            <BookOpen className="w-4 h-4 text-[#FB923C]" />
           </div>
           <div>
-            <h4 className="font-bold text-base-content text-xs flex items-center gap-2">
+            <h4 className="font-bold text-white text-xs flex items-center gap-2">
               Structured STAR Interview Strategy
-              <span className="badge badge-neutral badge-xs font-mono text-base-content/70 border-base-300">
+              <span className="badge badge-neutral badge-sm font-mono text-[#CBD5E1] border border-[#3B3F4E]">
                 L5/L6 Rubric
               </span>
             </h4>
-            <p className="text-[11px] text-base-content/60">
+            <p className="text-xs text-[#94A3B8]">
               {data.jobTitle ? `${data.jobTitle} • ` : ""}{data.company || "Target Role"}
             </p>
           </div>
@@ -64,29 +64,30 @@ export function InterviewPrepView({ data }: { data: Partial<InterviewPrep> }) {
 
         <button
           onClick={handleCopy}
-          className="btn btn-neutral btn-xs gap-1.5 border border-base-300 font-mono text-base-content/80 hover:btn-primary hover:text-white"
+          aria-label={copied ? "STAR Guide copied to clipboard" : "Copy STAR interview preparation guide"}
+          className="px-3 py-1.5 rounded-md bg-[#18191E] hover:bg-[#272932] border border-[#3B3F4E] hover:border-[#F6821F]/60 text-xs font-mono font-medium text-white flex items-center gap-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
           title="Copy STAR Guide"
         >
           {copied ? (
             <>
-              <Check className="w-3.5 h-3.5 text-primary" />
-              <span className="text-primary font-medium">Copied!</span>
+              <Check className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
+              <span className="text-emerald-400 font-semibold">Copied!</span>
             </>
           ) : (
             <>
-              <Copy className="w-3.5 h-3.5" />
+              <Copy className="w-3.5 h-3.5 text-[#CBD5E1]" aria-hidden="true" />
               <span>Copy Guide</span>
             </>
           )}
         </button>
       </div>
 
-      <div className="card-body p-4 space-y-4">
+      <div className="card-body p-4 space-y-5">
         {/* Behavioral Scenarios (STAR Method) */}
         {behavioralQuestions.length > 0 && (
           <div className="space-y-3">
-            <div className="text-[11px] font-mono font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-primary" />
+            <div className="text-xs font-mono font-bold text-[#FB923C] uppercase tracking-wider flex items-center gap-2">
+              <Award className="w-4 h-4 text-[#FB923C]" aria-hidden="true" />
               Behavioral Scenarios (STAR Method Architecture)
             </div>
 
@@ -94,48 +95,48 @@ export function InterviewPrepView({ data }: { data: Partial<InterviewPrep> }) {
               {behavioralQuestions.map((bq: BehavioralQuestion, idx: number) => (
                 <div
                   key={idx}
-                  className="rounded-xl bg-base-200 border border-base-300 p-3.5 space-y-3"
+                  className="rounded-xl bg-[#0E0F12] border border-[#2F333E] p-4 space-y-3"
                 >
-                  <div className="font-medium text-base-content text-xs flex items-start gap-2">
-                    <span className="badge badge-neutral badge-sm font-mono font-bold mt-0.5 border-base-300">
+                  <div className="font-semibold text-white text-xs flex items-start gap-2.5">
+                    <span className="px-2 py-0.5 rounded bg-[#1E2026] text-white font-mono font-bold border border-[#3B3F4E] text-xs">
                       {idx + 1}
                     </span>
                     <span className="leading-snug pt-0.5">{bq.question}</span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
                     {/* Situation & Task */}
                     {bq.situationTask && (
-                      <div className="p-3 rounded-lg bg-base-100 border border-base-300 text-xs flex flex-col justify-between">
+                      <div className="p-3.5 rounded-lg bg-[#141518] border border-[#2F333E] text-xs flex flex-col justify-between">
                         <div>
-                          <span className="font-mono font-bold text-base-content/60 block mb-1 uppercase text-[10px] tracking-wider">
+                          <span className="font-mono font-bold text-[#94A3B8] block mb-1.5 uppercase text-xs tracking-wider">
                             Situation &amp; Task
                           </span>
-                          <span className="text-base-content/80 leading-relaxed">{bq.situationTask}</span>
+                          <span className="text-[#F8FAFC] leading-relaxed">{bq.situationTask}</span>
                         </div>
                       </div>
                     )}
 
                     {/* Action Taken */}
                     {bq.actionTaken && (
-                      <div className="p-3 rounded-lg bg-base-100 border border-base-300 text-xs flex flex-col justify-between">
+                      <div className="p-3.5 rounded-lg bg-[#141518] border border-[#2F333E] text-xs flex flex-col justify-between">
                         <div>
-                          <span className="font-mono font-bold text-primary block mb-1 uppercase text-[10px] tracking-wider">
+                          <span className="font-mono font-bold text-[#FB923C] block mb-1.5 uppercase text-xs tracking-wider">
                             Action Taken
                           </span>
-                          <span className="text-base-content/80 leading-relaxed">{bq.actionTaken}</span>
+                          <span className="text-[#F8FAFC] leading-relaxed">{bq.actionTaken}</span>
                         </div>
                       </div>
                     )}
 
                     {/* Result & Impact */}
                     {bq.resultImpact && (
-                      <div className="p-3 rounded-lg bg-base-100 border border-base-300 text-xs flex flex-col justify-between">
+                      <div className="p-3.5 rounded-lg bg-[#141518] border border-[#2F333E] text-xs flex flex-col justify-between">
                         <div>
-                          <span className="font-mono font-bold text-base-content block mb-1 uppercase text-[10px] tracking-wider">
+                          <span className="font-mono font-bold text-emerald-400 block mb-1.5 uppercase text-xs tracking-wider">
                             Result &amp; Impact
                           </span>
-                          <span className="text-base-content/80 leading-relaxed">{bq.resultImpact}</span>
+                          <span className="text-[#F8FAFC] leading-relaxed">{bq.resultImpact}</span>
                         </div>
                       </div>
                     )}
@@ -148,50 +149,57 @@ export function InterviewPrepView({ data }: { data: Partial<InterviewPrep> }) {
 
         {/* Technical Questions */}
         {technicalQuestions.length > 0 && (
-          <div className="space-y-3 pt-3 border-t border-base-300">
-            <div className="text-[11px] font-mono font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-              <Code2 className="w-4 h-4 text-primary" />
+          <div className="space-y-3 pt-3 border-t border-[#2F333E]">
+            <div className="text-xs font-mono font-bold text-[#FB923C] uppercase tracking-wider flex items-center gap-2">
+              <Code2 className="w-4 h-4 text-[#FB923C]" aria-hidden="true" />
               Technical &amp; Systems Architecture Probing
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {technicalQuestions.map((tq: TechnicalQuestion, idx: number) => {
                 const isExpanded = expandedTech[idx] ?? true;
                 return (
                   <div
                     key={idx}
-                    className="rounded-xl bg-base-200 border border-base-300 overflow-hidden"
+                    className="rounded-xl bg-[#0E0F12] border border-[#2F333E] overflow-hidden"
                   >
                     <button
                       onClick={() => toggleTech(idx)}
-                      className="w-full text-left p-3 flex items-start justify-between gap-3 hover:bg-base-300/50 transition-colors"
+                      aria-expanded={isExpanded}
+                      aria-controls={`tech-question-content-${idx}`}
+                      className="w-full text-left p-3.5 flex items-start justify-between gap-3 hover:bg-[#18191E] transition-colors focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                     >
-                      <div className="flex items-start gap-2 flex-1">
-                        <span className="badge badge-neutral badge-sm font-mono font-bold shrink-0 mt-0.5 border-base-300">
+                      <div className="flex items-start gap-2.5 flex-1">
+                        <span className="px-2 py-0.5 rounded bg-[#1E2026] text-white font-mono font-bold shrink-0 mt-0.5 border border-[#3B3F4E] text-xs">
                           {idx + 1}
                         </span>
                         <div>
-                          <span className="font-medium text-base-content text-xs">{tq.question}</span>
+                          <span className="font-semibold text-white text-xs">{tq.question}</span>
                           {tq.focusArea && (
-                            <span className="badge badge-neutral badge-xs font-mono ml-2 border-base-300 text-base-content/60">
+                            <span className="inline-block px-2 py-0.5 rounded bg-[#1C1E24] text-[#FB923C] font-mono text-xs border border-[#3B3F4E] ml-2">
                               {tq.focusArea}
                             </span>
                           )}
                         </div>
                       </div>
                       {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-base-content/50 shrink-0 mt-1" />
+                        <ChevronUp className="w-4 h-4 text-[#CBD5E1] shrink-0 mt-1" aria-hidden="true" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-base-content/50 shrink-0 mt-1" />
+                        <ChevronDown className="w-4 h-4 text-[#CBD5E1] shrink-0 mt-1" aria-hidden="true" />
                       )}
                     </button>
 
                     {isExpanded && tq.keyTalkingPoints && tq.keyTalkingPoints.length > 0 && (
-                      <div className="px-3.5 pb-3.5 pt-1 border-t border-base-300 bg-base-100">
-                        <div className="text-[10px] font-mono uppercase text-base-content/50 mb-1.5 font-semibold">
+                      <div
+                        id={`tech-question-content-${idx}`}
+                        role="region"
+                        aria-label={`Talking points for question: ${tq.question}`}
+                        className="px-4 pb-4 pt-2 border-t border-[#2F333E] bg-[#141518]"
+                      >
+                        <div className="text-xs font-mono uppercase text-[#94A3B8] mb-2 font-bold">
                           Recommended Talking Points:
                         </div>
-                        <ul className="space-y-1.5 pl-3 list-disc text-xs text-base-content/80 marker:text-primary">
+                        <ul className="space-y-2 pl-3 list-disc text-xs text-[#F8FAFC] marker:text-[#FB923C]">
                           {tq.keyTalkingPoints.map((tp: string, ptIdx: number) => (
                             <li key={ptIdx} className="leading-relaxed">
                               {tp}
@@ -209,14 +217,14 @@ export function InterviewPrepView({ data }: { data: Partial<InterviewPrep> }) {
 
         {/* System Design Focus Tags */}
         {systemDesignFocus.length > 0 && (
-          <div className="space-y-2 pt-3 border-t border-base-300">
-            <div className="text-[11px] font-mono font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-              <Target className="w-4 h-4 text-primary" />
+          <div className="space-y-2 pt-3 border-t border-[#2F333E]">
+            <div className="text-xs font-mono font-bold text-[#FB923C] uppercase tracking-wider flex items-center gap-2">
+              <Target className="w-4 h-4 text-[#FB923C]" aria-hidden="true" />
               Edge Systems Architecture Focus Areas
             </div>
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div className="flex flex-wrap gap-2 pt-1">
               {systemDesignFocus.map((focus: string, idx: number) => (
-                <span key={idx} className="badge badge-neutral badge-sm font-mono font-medium border-base-300 text-base-content/80">
+                <span key={idx} className="px-3 py-1 rounded-md bg-[#0E0F12] border border-[#3B3F4E] text-white font-mono text-xs font-medium">
                   {focus}
                 </span>
               ))}

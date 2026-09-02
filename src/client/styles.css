@@ -15,9 +15,15 @@ body {
   margin: 0;
   padding: 0;
   background-color: #0C0D0E;
-  color: #F3F4F6;
+  color: #F8FAFC;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow: hidden;
+}
+
+/* Accessible focus ring default for interactive elements */
+:focus-visible {
+  outline: 2px solid #F6821F !important;
+  outline-offset: 2px !important;
 }
 
 /* Cloudflare Clean Grid Pattern (Matte, No Glow) */
@@ -32,20 +38,32 @@ code, pre {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Custom Cloudflare Scrollbar */
+/* Custom Cloudflare Scrollbar with WCAG Compliant Contrast */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: #121316;
 }
 ::-webkit-scrollbar-thumb {
-  background: #282A34;
-  border-radius: 2px;
+  background: #3B3F4E;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3E4252;
+  background: #52586D;
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 

@@ -42,29 +42,29 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
     const data = payload as { candidate?: CandidateProfile; updatedCandidate?: CandidateProfile; message?: string };
     const candidate = data.candidate || data.updatedCandidate;
     return (
-      <div key={pIdx} className="p-4 rounded-xl bg-[#141518] border border-[#22242B] mt-3 space-y-2 text-xs">
-        <div className="flex items-center justify-between pb-2 border-b border-[#22242B]">
+      <div key={pIdx} className="p-4 rounded-xl bg-[#141518] border border-[#2F333E] mt-3 space-y-2.5 text-xs text-[#CBD5E1]">
+        <div className="flex items-center justify-between pb-2 border-b border-[#2F333E]">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#F6821F]/15 text-[#F6821F] flex items-center justify-center font-bold">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+            <div className="w-6 h-6 rounded-md bg-[#F6821F]/20 text-[#FB923C] flex items-center justify-center font-bold" aria-hidden="true">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </div>
             <h4 className="font-bold text-white text-xs font-mono">Profile Synced to SQLite</h4>
           </div>
-          <span className="text-[10px] px-2 py-0.5 rounded bg-[#1C1E24] text-[#80808A] font-mono border border-[#282A34]">
+          <span className="text-xs px-2.5 py-0.5 rounded bg-[#1C1E24] text-[#FB923C] font-mono border border-[#3B3F4E] font-medium">
             Durable Objects SQLite
           </span>
         </div>
-        <p className="text-[11px] text-[#90909A]">{data.message || "Candidate profile updated successfully."}</p>
+        <p className="text-xs text-[#CBD5E1]">{data.message || "Candidate profile updated successfully."}</p>
         {candidate && (
-          <div className="p-2.5 rounded-lg bg-[#0E0F12] border border-[#22242B] text-[11px] space-y-1 font-mono">
+          <div className="p-3 rounded-lg bg-[#0E0F12] border border-[#2F333E] text-xs space-y-1.5 font-mono text-[#CBD5E1]">
             <div className="text-white font-bold">
               {candidate.name} • {candidate.yearsOfExperience}y Exp • {candidate.location}
             </div>
             {candidate.targetRole && (
-              <div className="text-[#90909A] text-[10px] line-clamp-1">Role: {candidate.targetRole}</div>
+              <div className="text-[#CBD5E1] text-xs line-clamp-1">Role: {candidate.targetRole}</div>
             )}
             {candidate.skills && (
-              <div className="text-[#70707A] text-[10px] line-clamp-1">
+              <div className="text-[#94A3B8] text-xs line-clamp-1">
                 Skills: {candidate.skills.join(", ")}
               </div>
             )}
@@ -77,14 +77,14 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
   return (
     <div
       key={pIdx}
-      className="mt-2 p-3 rounded-xl bg-[#141518] border border-[#22242B] font-mono text-xs"
+      className="mt-2 p-3.5 rounded-xl bg-[#141518] border border-[#2F333E] font-mono text-xs"
     >
-      <div className="flex items-center gap-1.5 text-[#F6821F] font-bold mb-1.5">
-        <Terminal className="w-3.5 h-3.5" />
+      <div className="flex items-center gap-2 text-[#FB923C] font-bold mb-2">
+        <Terminal className="w-4 h-4" aria-hidden="true" />
         Execution Tool: {toolName}
       </div>
       {payload !== undefined && payload !== null && (
-        <pre className="text-[10px] text-[#A0A2AC] overflow-x-auto max-h-48 p-2 bg-[#0E0F12] rounded-lg border border-[#22242B]">
+        <pre className="text-xs text-[#CBD5E1] overflow-x-auto max-h-48 p-3 bg-[#0E0F12] rounded-lg border border-[#2F333E]">
           {JSON.stringify(payload, null, 2)}
         </pre>
       )}
@@ -120,7 +120,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    messagesEndRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
   }, [messages]);
 
   const handleSend = (e?: React.FormEvent) => {
@@ -169,7 +170,15 @@ export function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#0E0F12] text-[#E0E2EC] overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-full bg-[#0E0F12] text-[#F8FAFC] overflow-hidden font-sans">
+      {/* Skip Navigation Link for Keyboard & Screen Reader Users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-[#F6821F] focus:text-[#0C0D0E] focus:font-bold focus:rounded-md focus:shadow-lg focus:outline-none"
+      >
+        Skip to main content
+      </a>
+
       {/* Top Navbar */}
       <Header
         candidate={candidate}
@@ -190,22 +199,26 @@ export function App() {
         />
 
         {/* Center Main Dashboard Workspace */}
-        <main className="flex-1 flex flex-col h-full bg-[#08080A] overflow-hidden">
+        <main
+          id="main-content"
+          aria-label="FlareAlign Copilot Workspace"
+          className="flex-1 flex flex-col h-full bg-[#08080A] overflow-hidden"
+        >
           <div className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full px-6 py-4">
             {/* Header Title Bar with Clear Chat */}
-            <div className="flex items-center justify-between gap-3 pb-3 border-b border-[#1A1B22] shrink-0">
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-[#2F333E] shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#F6821F] text-white flex items-center justify-center font-bold">
-                  <Zap className="w-4 h-4 fill-white" />
+                <div className="w-8 h-8 rounded-lg bg-[#F6821F] text-[#0C0D0E] flex items-center justify-center font-bold" aria-hidden="true">
+                  <Zap className="w-4 h-4 fill-[#0C0D0E]" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-sm font-bold text-white tracking-tight">FlareAlign Copilot</h1>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#141518] text-[#F6821F] border border-[#22242B] font-mono">
+                    <h1 className="text-base font-bold text-white tracking-tight">FlareAlign Copilot</h1>
+                    <span className="text-xs px-2 py-0.5 rounded bg-[#141518] text-[#FB923C] border border-[#3B3F4E] font-mono font-medium">
                       v1.0 Edge
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#80808A]">
+                  <p className="text-xs text-[#CBD5E1]">
                     Workers AI (Llama 3.3 70B) • Durable Objects SQLite • Cloudflare Workflows
                   </p>
                 </div>
@@ -214,10 +227,11 @@ export function App() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={clearHistory}
-                  className="px-2.5 py-1.5 rounded-md bg-[#141518] hover:bg-[#1E2028] border border-[#22242B] text-xs text-[#90909A] hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-md bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F]/60 text-xs font-medium text-white flex items-center gap-2 transition-colors focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                   title="Clear Conversation History"
+                  aria-label="Clear conversation chat history"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4 text-[#CBD5E1]" aria-hidden="true" />
                   <span>Clear Chat</span>
                 </button>
 
@@ -227,45 +241,51 @@ export function App() {
                       "Evaluate candidate fit for Cloudflare's Software Engineer - Edge Platform & DevEx opening in Bengaluru."
                     )
                   }
-                  className="px-3 py-1.5 rounded-md bg-[#F6821F] hover:bg-[#E57213] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-md bg-[#F6821F] hover:bg-[#E57213] text-[#0C0D0E] text-xs font-bold flex items-center gap-2 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none cursor-pointer"
+                  aria-label="Score candidate fit for Cloudflare SE role"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-4 h-4 fill-[#0C0D0E]" aria-hidden="true" />
                   <span>Score Fit</span>
                 </button>
               </div>
             </div>
 
             {/* Natural Scrollable Message Feed */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-4 custom-scrollbar">
+            <div
+              role="log"
+              aria-label="Conversation messages"
+              aria-live="polite"
+              className="flex-1 overflow-y-auto py-4 space-y-4 custom-scrollbar"
+            >
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto space-y-5 py-6">
-                  <div className="w-12 h-12 rounded-full bg-[#141518] border border-[#22242B] flex items-center justify-center text-[#F6821F]">
-                    <Sparkles className="w-6 h-6" />
+                  <div className="w-14 h-14 rounded-full bg-[#141518] border border-[#2F333E] flex items-center justify-center text-[#FB923C]" aria-hidden="true">
+                    <Sparkles className="w-7 h-7" />
                   </div>
 
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-white">
+                  <div className="space-y-1.5">
+                    <h2 className="text-base font-bold text-white">
                       FlareAlign — Edge Platform &amp; DevEx Intelligence
-                    </h3>
-                    <p className="text-xs text-[#80808A] leading-relaxed">
+                    </h2>
+                    <p className="text-xs text-[#CBD5E1] leading-relaxed">
                       Evaluate candidate fit, generate edge-tailored resume bullets, or architect STAR interview preparation for Cloudflare Bengaluru.
                     </p>
                   </div>
 
                   {/* 3 Quick Action Starter Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full pt-1" role="group" aria-label="Quick action starter shortcuts">
                     <button
                       onClick={() =>
                         handleQuickAction(
                           "Evaluate my profile against Cloudflare's Software Engineer - Edge Platform & DevEx opening in Bengaluru. Provide score breakdown."
                         )
                       }
-                      className="p-3 text-left rounded-lg bg-[#141518] hover:bg-[#1A1B22] border border-[#22242B] hover:border-[#F6821F]/40 text-xs transition-colors group cursor-pointer"
+                      className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                     >
-                      <div className="font-medium text-white mb-1 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-[#F6821F]" /> 1. Fit Scoring
+                      <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 1. Fit Scoring
                       </div>
-                      <div className="text-[11px] text-[#70707A]">
+                      <div className="text-xs text-[#CBD5E1]">
                         35/30/20/15 heuristic match.
                       </div>
                     </button>
@@ -276,12 +296,12 @@ export function App() {
                           "Generate targeted resume bullets highlighting my experience with Cloudflare Workers, Durable Objects, and TypeScript."
                         )
                       }
-                      className="p-3 text-left rounded-lg bg-[#141518] hover:bg-[#1A1B22] border border-[#22242B] hover:border-[#F6821F]/40 text-xs transition-colors group cursor-pointer"
+                      className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                     >
-                      <div className="font-medium text-white mb-1 flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5 text-[#F6821F]" /> 2. Resume Bullets
+                      <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 2. Resume Bullets
                       </div>
-                      <div className="text-[11px] text-[#70707A]">
+                      <div className="text-xs text-[#CBD5E1]">
                         Tailor edge systems bullets.
                       </div>
                     </button>
@@ -292,12 +312,12 @@ export function App() {
                           "Generate comprehensive interview preparation with technical questions, STAR-method behavioral stories, and edge systems architecture topics for Cloudflare."
                         )
                       }
-                      className="p-3 text-left rounded-lg bg-[#141518] hover:bg-[#1A1B22] border border-[#22242B] hover:border-[#F6821F]/40 text-xs transition-colors group cursor-pointer"
+                      className="p-3.5 text-left rounded-lg bg-[#141518] hover:bg-[#1E2026] border border-[#2F333E] hover:border-[#F6821F] text-xs transition-colors group focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                     >
-                      <div className="font-medium text-white mb-1 flex items-center gap-1.5">
-                        <BookOpen className="w-3.5 h-3.5 text-[#F6821F]" /> 3. STAR Prep
+                      <div className="font-semibold text-white mb-1.5 flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-[#FB923C]" aria-hidden="true" /> 3. STAR Prep
                       </div>
-                      <div className="text-[11px] text-[#70707A]">
+                      <div className="text-xs text-[#CBD5E1]">
                         Architect STAR answers.
                       </div>
                     </button>
@@ -317,22 +337,22 @@ export function App() {
                         className={`flex gap-3 max-w-3xl ${isUser ? "ml-auto" : "mr-auto"} animate-fade-in`}
                       >
                         {!isUser && (
-                          <div className="w-7 h-7 rounded-md bg-[#F6821F] text-white flex items-center justify-center shrink-0 font-bold">
-                            <Zap className="w-4 h-4 fill-white" />
+                          <div className="w-8 h-8 rounded-md bg-[#F6821F] text-[#0C0D0E] flex items-center justify-center shrink-0 font-bold" aria-hidden="true">
+                            <Zap className="w-4 h-4 fill-[#0C0D0E]" />
                           </div>
                         )}
 
                         <div className="space-y-2 flex-1">
                           <div
-                            className={`p-3.5 rounded-xl text-xs leading-relaxed ${
+                            className={`p-4 rounded-xl text-xs leading-relaxed ${
                               isUser
-                                ? "bg-[#F6821F] text-white font-medium"
-                                : "bg-[#141518] text-[#E0E2EC] border border-[#22242B]"
+                                ? "bg-[#F6821F] text-[#0C0D0E] font-medium shadow-sm"
+                                : "bg-[#141518] text-[#F8FAFC] border border-[#2F333E]"
                             }`}
                           >
                             {!hasContent && !isUser ? (
-                              <div className="flex items-center gap-2 text-[#80808A] font-mono text-[11px]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#F6821F] animate-pulse" />
+                              <div role="status" aria-live="polite" className="flex items-center gap-2.5 text-[#CBD5E1] font-mono text-xs">
+                                <span className="w-2 h-2 rounded-full bg-[#FB923C] animate-pulse" aria-hidden="true" />
                                 <span>Evaluating on Cloudflare Edge...</span>
                               </div>
                             ) : (
@@ -340,7 +360,7 @@ export function App() {
                                 if (part.type === "text") {
                                   if (!part.text?.trim() && toolParts.length > 0) return null;
                                   return (
-                                    <div key={pIdx} className="whitespace-pre-wrap space-y-2">
+                                    <div key={pIdx} className="whitespace-pre-wrap space-y-2 text-xs">
                                       {part.text}
                                     </div>
                                   );
@@ -355,7 +375,11 @@ export function App() {
                         </div>
 
                         {isUser && (
-                          <div className="w-7 h-7 rounded-md bg-[#22242B] border border-[#2E303A] text-white font-bold text-xs flex items-center justify-center shrink-0 font-mono">
+                          <div
+                            role="img"
+                            aria-label={`User: ${candidate?.name || "Candidate"}`}
+                            className="w-8 h-8 rounded-md bg-[#1E2026] border border-[#3B3F4E] text-white font-bold text-xs flex items-center justify-center shrink-0 font-mono"
+                          >
                             {candidate?.name ? candidate.name.charAt(0) : "U"}
                           </div>
                         )}
@@ -368,17 +392,21 @@ export function App() {
             </div>
 
             {/* Single Dedicated Bottom Input Bar with Suggestion Chips */}
-            <div className="pt-2 border-t border-[#1A1B22] space-y-2 shrink-0">
+            <div className="pt-2.5 border-t border-[#2F333E] space-y-2.5 shrink-0">
               {/* Suggestion Chips */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-mono text-[#80808A]">
-                <span className="text-[#50505A] text-[10px] uppercase font-semibold">Actions:</span>
+              <div
+                role="group"
+                aria-label="Suggested quick questions"
+                className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-mono text-[#CBD5E1]"
+              >
+                <span className="text-[#94A3B8] text-xs uppercase font-bold">Actions:</span>
                 <button
                   onClick={() =>
                     handleQuickAction(
                       "Evaluate my profile against Cloudflare's Software Engineer - Edge Platform & DevEx opening in Bengaluru. Provide score breakdown."
                     )
                   }
-                  className="px-2.5 py-0.5 rounded-full bg-[#141518] hover:bg-[#1E2028] border border-[#22242B] hover:border-[#F6821F]/40 text-[#D0D2DC] transition-colors whitespace-nowrap cursor-pointer"
+                  className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                 >
                   Score Fit
                 </button>
@@ -388,7 +416,7 @@ export function App() {
                       "Generate targeted resume bullets highlighting my experience with Cloudflare Workers, Durable Objects, and TypeScript."
                     )
                   }
-                  className="px-2.5 py-0.5 rounded-full bg-[#141518] hover:bg-[#1E2028] border border-[#22242B] hover:border-[#F6821F]/40 text-[#D0D2DC] transition-colors whitespace-nowrap cursor-pointer"
+                  className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                 >
                   Tailor Resume
                 </button>
@@ -398,27 +426,30 @@ export function App() {
                       "Generate comprehensive interview preparation with technical questions, STAR-method behavioral stories, and edge systems architecture topics for Cloudflare."
                     )
                   }
-                  className="px-2.5 py-0.5 rounded-full bg-[#141518] hover:bg-[#1E2028] border border-[#22242B] hover:border-[#F6821F]/40 text-[#D0D2DC] transition-colors whitespace-nowrap cursor-pointer"
+                  className="px-3 py-1 rounded-full bg-[#141518] hover:bg-[#1E2026] border border-[#3B3F4E] hover:border-[#F6821F] text-white transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none cursor-pointer"
                 >
                   STAR Prep
                 </button>
               </div>
 
               {/* Main Single Message Input */}
-              <form onSubmit={handleSend} className="flex items-center gap-2">
+              <form onSubmit={handleSend} className="flex items-center gap-2" aria-label="Chat input form">
                 <input
+                  id="chat-message-input"
                   type="text"
                   value={inputVal}
                   onChange={(e) => setInputVal(e.target.value)}
+                  aria-label="Message prompt input"
                   placeholder="Ask about Cloudflare SE roles, score fit, or tailor resume..."
-                  className="flex-1 bg-[#141518] border border-[#22242B] focus:border-[#F6821F]/60 rounded-lg px-3.5 py-2.5 text-xs text-[#D0D2DC] placeholder-[#60606A] focus:outline-none transition-colors"
+                  className="flex-1 bg-[#141518] border border-[#3B3F4E] focus:border-[#F6821F] rounded-lg px-4 py-2.5 text-xs text-white placeholder-[#94A3B8] focus-visible:ring-2 focus-visible:ring-[#F6821F] focus-visible:outline-none transition-colors"
                 />
                 <button
                   type="submit"
                   disabled={!inputVal.trim()}
-                  className="px-4 py-2.5 bg-[#F6821F] hover:bg-[#E57213] text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
+                  aria-label="Send message"
+                  className="px-4 py-2.5 bg-[#F6821F] hover:bg-[#E57213] text-[#0C0D0E] font-bold rounded-lg text-xs flex items-center gap-2 transition-colors disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none cursor-pointer"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <Send className="w-4 h-4 fill-[#0C0D0E]" aria-hidden="true" />
                   <span>Send</span>
                 </button>
               </form>
