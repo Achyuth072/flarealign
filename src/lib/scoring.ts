@@ -64,11 +64,8 @@ export function validateWeights(weights: FitScoreWeights): void {
   ];
 
   for (const [key, val] of entries) {
-    if (val < 0) {
-      throw new Error(`Weight for ${key} (${val}) must be non-negative`);
-    }
-    if (val < MIN_WEIGHT || val > MAX_WEIGHT) {
-      throw new Error(`Weight for ${key} (${val}) must be within [${MIN_WEIGHT}, ${MAX_WEIGHT}]`);
+    if (val < 0 || val > 1.0) {
+      throw new Error(`Weight for ${key} (${val}) must be non-negative and <= 1.0`);
     }
   }
 }

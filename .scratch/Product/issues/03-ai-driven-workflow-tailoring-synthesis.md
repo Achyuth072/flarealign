@@ -3,6 +3,8 @@
 **What to build:**
 Upgrade the Cloudflare Workflow `TailoringWorkflow` to leverage the Cloudflare Workers AI binding (`@cf/meta/llama-3.3-70b-instruct`) in the `generate-tailoring-synthesis` step. Replace hardcoded mock strings with dynamic, LLM-generated resume bullet points and STAR-focused interview tips personalized to the job description and candidate context.
 
+Type: task
+
 **Blocked by:** 01: Fix Scoring Heuristics and Boundary Tests
 
 **Status:** resolved

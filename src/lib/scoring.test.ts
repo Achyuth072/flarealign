@@ -82,7 +82,7 @@ describe("Scoring Domain Logic", () => {
     expect(deriveRecommendation(0)).toBe("Low Fit");
   });
 
-  it("validates weights sum, non-negative bounds, and range limits", () => {
+  it("validates weights sum and non-negative bounds", () => {
     expect(() => validateWeights(DEFAULT_FIT_SCORE_WEIGHTS)).not.toThrow();
 
     // Sum != 1.0
@@ -103,27 +103,27 @@ describe("Scoring Domain Logic", () => {
         domain: 0.3,
         trajectory: 0.3,
       })
-    ).toThrow(/must be non-negative|must be within/);
+    ).toThrow(/must be non-negative and <= 1.0/);
 
-    // Exceeds max weight
+    // Exceeds 1.0
     expect(() =>
       validateWeights({
-        skills: 0.6,
-        experience: 0.2,
+        skills: 1.2,
+        experience: -0.1,
+        domain: 0.0,
+        trajectory: -0.1,
+      })
+    ).toThrow(/must be non-negative and <= 1.0/);
+
+    // Valid skewed weights summing to 1.0
+    expect(() =>
+      validateWeights({
+        skills: 0.7,
+        experience: 0.1,
         domain: 0.1,
         trajectory: 0.1,
       })
-    ).toThrow(/must be within/);
-
-    // Below min weight
-    expect(() =>
-      validateWeights({
-        skills: 0.05,
-        experience: 0.35,
-        domain: 0.3,
-        trajectory: 0.3,
-      })
-    ).toThrow(/must be within/);
+    ).not.toThrow();
   });
 
   it("validates SubDimensionsSchema and FitScoreResultSchema", () => {

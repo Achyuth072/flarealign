@@ -164,7 +164,9 @@ export function parseSynthesisResponse(rawContent: unknown): SynthesisOutput | n
         return { tailoredBullets, interviewTips };
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn("Failed to parse JSON response from AI synthesis:", err);
+  }
 
   return null;
 }
@@ -203,27 +205,32 @@ export async function generateTailoringSynthesis(
   job: { title: string; company: string; description: string },
   fitResult: FitResult
 ): Promise<SynthesisOutput> {
-  if (aiBinding && typeof (aiBinding as any).run === "function") {
+  if (aiBinding && typeof (aiBinding as { run?: unknown }).run === "function") {
     try {
       const prompt = buildSynthesisPrompt(candidate, job, fitResult);
-      const response: any = await (aiBinding as any).run("@cf/meta/llama-3.3-70b-instruct", {
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an expert technical career advisor and principal systems engineer specializing in cloud platforms, edge computing, and Cloudflare ecosystem engineering. Always respond strictly in valid JSON with keys 'tailoredBullets' (array of 3+ strings) and 'interviewTips' (array of 3+ strings).",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      });
+      const response = await (aiBinding as { run: (model: string, input: unknown) => Promise<unknown> }).run(
+        "@cf/meta/llama-3.3-70b-instruct",
+        {
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an expert technical career advisor and principal systems engineer specializing in cloud platforms, edge computing, and Cloudflare ecosystem engineering. Always respond strictly in valid JSON with keys 'tailoredBullets' (array of 3+ strings) and 'interviewTips' (array of 3+ strings).",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+        }
+      );
 
       const rawContent =
         typeof response === "string"
           ? response
-          : response?.response || (response?.result ? response.result.response : response);
+          : (response as { response?: unknown; result?: { response?: unknown } })?.response ||
+            (response as { result?: { response?: unknown } })?.result?.response ||
+            response;
 
       const parsed = parseSynthesisResponse(rawContent);
       if (parsed) {
@@ -241,7 +248,7 @@ export class TailoringWorkflow extends WorkflowEntrypoint<Env, TailoringWorkflow
   async run(event: WorkflowEvent<TailoringWorkflowParams>, step: WorkflowStep) {
     const params = event.payload;
 
-    // Step 1: Ingest and Validate
+    // Normalize and sanitize incoming job parameters
     const normalizedJob = await step.do("normalize-job", async () => {
       return {
         jobId: params.jobId || makeId("job"),
@@ -251,7 +258,7 @@ export class TailoringWorkflow extends WorkflowEntrypoint<Env, TailoringWorkflow
       };
     });
 
-    // Step 2: Compute Dimensional Fit Score
+    // Compute multi-dimensional fit scores across skills, experience, domain, and trajectory
     const fitResult = await step.do("compute-fit-score", async () => {
       const descLower = normalizedJob.description.toLowerCase();
       const titleLower = normalizedJob.title.toLowerCase();
@@ -341,7 +348,7 @@ export class TailoringWorkflow extends WorkflowEntrypoint<Env, TailoringWorkflow
       };
     });
 
-    // Step 3: Synthesize Tailored Resume & Interview Prep and Finalize
+    // Synthesize tailored resume bullets and interview prep using Workers AI with fallback
     const synthesis = await step.do("generate-tailoring-synthesis", async () => {
       const synthesisOutput = await generateTailoringSynthesis(
         this.env?.AI,

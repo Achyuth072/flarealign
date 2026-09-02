@@ -3,9 +3,11 @@
 **What to build:**
 Accurate, calibrated multi-dimensional fit scoring and complete unit test coverage. The scoring logic calculates weighted composite scores across Skills (35%), Experience (30%), Domain (20%), and Trajectory (15%), derives correct categorical recommendations ("Strong Fit" >= 80, "Potential Fit" 60–79, "Low Fit" < 60), exports strict Zod schemas for validation, and passes a comprehensive suite covering all edge and boundary conditions.
 
+Type: task
+
 **Blocked by:** None (can start immediately)
 
-**Status:** closed
+**Status:** resolved
 
 ## Acceptance criteria
 

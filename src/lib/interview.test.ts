@@ -200,5 +200,65 @@ describe("Interview Prep Schemas and Persistence", () => {
       const parsedResume = JSON.parse(row.tailored_resume);
       expect(parsedResume.bullets).toContain("Initial bullet");
     });
+
+    it("preserves interview_prep when tailored_resume is subsequently upserted", () => {
+      const jobId = "job-cf-prep-3";
+      db.prepare(
+        "INSERT INTO jobs (id, title, company, description, created_at) VALUES (?, ?, ?, ?, ?)"
+      ).run(jobId, "SE Platforms", "Cloudflare", "Edge Platform Role", Date.now());
+
+      const appId = "app-prep-3";
+      const initialPrep: InterviewPrep = {
+        jobTitle: "SE Platforms",
+        company: "Cloudflare",
+        technicalQuestions: [
+          {
+            question: "What is Durable Object SQLite?",
+            focusArea: "DO Persistence",
+            keyTalkingPoints: ["Transactional embedded SQLite", "Local storage at edge"],
+          },
+        ],
+        behavioralQuestions: [
+          {
+            question: "Describe a complex outage debugging session.",
+            situationTask: "Routing degradation in edge cluster.",
+            actionTaken: "Used Cloudflare trace analytics and real-time logs.",
+            resultImpact: "Restored service in 4 minutes.",
+          },
+        ],
+        systemDesignFocus: ["Durable Objects SQLite replication"],
+      };
+
+      // 1. Initial interview prep created
+      db.prepare(
+        "INSERT INTO applications (id, job_id, tailored_resume, interview_prep, created_at) VALUES (?, ?, ?, ?, ?)"
+      ).run(appId, jobId, JSON.stringify({}), JSON.stringify(initialPrep), Date.now());
+
+      // 2. Resume tailoring subsequently runs for the same job and updates tailored_resume
+      const tailoredResumePayload = {
+        jobTitle: "SE Platforms",
+        company: "Cloudflare",
+        focusAreas: ["Workers", "DO SQLite"],
+        tailoredBullets: ["Built high throughput edge agent using Cloudflare Workers and DO SQLite."],
+        executiveSummary: "Experienced systems engineer with deep edge computing expertise.",
+      };
+
+      db.prepare(
+        "UPDATE applications SET tailored_resume = ?, created_at = ? WHERE id = ?"
+      ).run(JSON.stringify(tailoredResumePayload), Date.now(), appId);
+
+      const row = db
+        .prepare("SELECT * FROM applications WHERE id = ?")
+        .get(appId) as unknown as ApplicationRow;
+
+      // Verify tailored resume is updated
+      const parsedResume = JSON.parse(row.tailored_resume);
+      expect(parsedResume.tailoredBullets[0]).toContain("Built high throughput edge agent");
+
+      // Verify interview_prep was NOT overwritten
+      const parsedPrep = JSON.parse(row.interview_prep) as InterviewPrep;
+      expect(parsedPrep.technicalQuestions[0].question).toBe("What is Durable Object SQLite?");
+      expect(parsedPrep.behavioralQuestions[0].actionTaken).toContain("Used Cloudflare trace analytics");
+    });
   });
 });

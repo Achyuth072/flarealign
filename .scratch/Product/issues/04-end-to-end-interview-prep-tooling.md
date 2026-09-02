@@ -3,6 +3,8 @@
 **What to build:**
 A full vertical tracer bullet for interview preparation across prompt definitions, agent tools, Durable Object SQLite persistence, and UI streaming chat interactions. Candidates can ask for STAR interview preparation, triggering the agent's `generateInterviewPrep` tool, saving the structured STAR questions and technical focus areas to the database, and displaying the results cleanly in the client UI.
 
+Type: task
+
 **Blocked by:** 01: Fix Scoring Heuristics and Boundary Tests, 02: Harden SQLite Schema and Persistence
 
 **Status:** resolved

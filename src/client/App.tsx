@@ -20,6 +20,8 @@ import {
   Target,
 } from "lucide-react";
 import type { CandidateProfile } from "../lib/candidate";
+import type { InterviewPrep, BehavioralQuestion, TechnicalQuestion } from "../lib/interview";
+import type { FitScoreSubDimensions } from "../lib/scoring";
 
 interface ApiResponse<T> {
   success?: boolean;
@@ -28,7 +30,36 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-function InterviewPrepResultView({ data }: { data: any }) {
+interface ScoreJobFitData {
+  jobId?: string;
+  compositeScore?: number;
+  score?: number;
+  recommendation?: string;
+  breakdown?: {
+    subDimensions?: FitScoreSubDimensions;
+    strengths?: string[];
+    gaps?: string[];
+    reasoning?: string;
+  };
+  subDimensions?: FitScoreSubDimensions;
+}
+
+interface TailorResumeData {
+  applicationId?: string;
+  jobTitle?: string;
+  company?: string;
+  executiveSummary?: string;
+  tailoredBullets?: string[];
+}
+
+interface ToolPartLike {
+  type?: string;
+  toolName?: string;
+  output?: unknown;
+  input?: unknown;
+}
+
+function InterviewPrepResultView({ data }: { data: Partial<InterviewPrep> }) {
   const technicalQuestions = data.technicalQuestions || [];
   const behavioralQuestions = data.behavioralQuestions || [];
   const systemDesignFocus = data.systemDesignFocus || [];
@@ -60,7 +91,7 @@ function InterviewPrepResultView({ data }: { data: any }) {
             Behavioral Scenarios (STAR Method)
           </div>
           <div className="space-y-3">
-            {behavioralQuestions.map((bq: any, idx: number) => (
+            {behavioralQuestions.map((bq: BehavioralQuestion, idx: number) => (
               <div key={idx} className="rounded-lg bg-[#181A24] border border-[#262938] p-3 space-y-2">
                 <div className="font-medium text-slate-100 flex items-start gap-1.5">
                   <span className="text-amber-400 font-bold">{idx + 1}.</span>
@@ -106,7 +137,7 @@ function InterviewPrepResultView({ data }: { data: any }) {
             Technical &amp; Domain Questions
           </div>
           <div className="space-y-2.5">
-            {technicalQuestions.map((tq: any, idx: number) => (
+            {technicalQuestions.map((tq: TechnicalQuestion, idx: number) => (
               <div key={idx} className="rounded-lg bg-[#181A24] border border-[#262938] p-3 space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-medium text-slate-100">{tq.question}</span>
@@ -152,7 +183,7 @@ function InterviewPrepResultView({ data }: { data: any }) {
   );
 }
 
-function ScoreJobFitResultView({ data }: { data: any }) {
+function ScoreJobFitResultView({ data }: { data: ScoreJobFitData }) {
   const score = data.compositeScore ?? data.score;
   const rec = data.recommendation;
   const breakdown = data.breakdown?.subDimensions || data.subDimensions;
@@ -210,7 +241,7 @@ function ScoreJobFitResultView({ data }: { data: any }) {
   );
 }
 
-function TailorResumeResultView({ data }: { data: any }) {
+function TailorResumeResultView({ data }: { data: TailorResumeData }) {
   const bullets = data.tailoredBullets || [];
 
   return (
@@ -255,22 +286,22 @@ function TailorResumeResultView({ data }: { data: any }) {
   );
 }
 
-function renderToolPart(part: any, pIdx: number) {
+function renderToolPart(part: ToolPartLike, pIdx: number) {
   const toolName = part.type?.startsWith("tool-")
     ? part.type.replace("tool-", "")
     : part.toolName || part.type;
   const payload = part.output || part.input;
 
   if (toolName === "generateInterviewPrep" && payload) {
-    return <InterviewPrepResultView key={pIdx} data={payload} />;
+    return <InterviewPrepResultView key={pIdx} data={payload as Partial<InterviewPrep>} />;
   }
 
   if (toolName === "scoreJobFit" && payload) {
-    return <ScoreJobFitResultView key={pIdx} data={payload} />;
+    return <ScoreJobFitResultView key={pIdx} data={payload as ScoreJobFitData} />;
   }
 
   if (toolName === "tailorResume" && payload) {
-    return <TailorResumeResultView key={pIdx} data={payload} />;
+    return <TailorResumeResultView key={pIdx} data={payload as TailorResumeData} />;
   }
 
   return (
@@ -282,7 +313,7 @@ function renderToolPart(part: any, pIdx: number) {
         <Terminal className="w-3.5 h-3.5" />
         Tool: {toolName}
       </div>
-      {payload && (
+      {payload !== undefined && payload !== null && (
         <pre className="text-[10px] text-slate-400 overflow-x-auto max-h-40 p-1.5 bg-[#0B0C0E] rounded">
           {JSON.stringify(payload, null, 2)}
         </pre>

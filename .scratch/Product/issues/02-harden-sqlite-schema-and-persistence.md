@@ -3,6 +3,8 @@
 **What to build:**
 Strict schema constraints and relational integrity in the `CareerAgent` Durable Object SQLite database. Ensure tables have `NOT NULL` constraints on required fields, foreign key relationships linking child records (`fit_scores`, `applications`) to parent `jobs`, and safe initialization/seeding behavior.
 
+Type: task
+
 **Blocked by:** None (can start immediately)
 
 **Status:** resolved
