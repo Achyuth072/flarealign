@@ -18,6 +18,7 @@ import {
   ScoreJobFitSchema,
   TailorResumeSchema,
   TriggerBatchWorkflowSchema,
+  IngestJobDescriptionSchema,
 } from "../lib/tool-schemas";
 import { formatUserActorName, parseUserIdFromAgentName } from "../lib/session";
 
@@ -336,6 +337,39 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     });
 
     const tools = {
+      ingestJobDescription: tool({
+        description:
+          "Ingest, parse, and activate a target job description in persistent SQLite storage for candidate fit scoring, tailoring, and interview prep.",
+        inputSchema: IngestJobDescriptionSchema,
+        execute: async (args) => {
+          try {
+            const savedJob = await this.saveActiveJob({
+              title: args.title,
+              company: args.company,
+              location: args.location || "Remote",
+              requiredSkills: args.requiredSkills || [],
+              preferredSkills: args.preferredSkills || [],
+              responsibilities: args.responsibilities || [],
+              experienceLevel: args.experienceLevel || "Mid-Senior Level",
+              rawDescription: args.rawDescription || "",
+            });
+
+            return {
+              success: true,
+              message: `Target job '${savedJob.title}' at ${savedJob.company} successfully ingested and activated.`,
+              job: savedJob,
+            };
+          } catch (err) {
+            console.error("[CareerAgent] Error in ingestJobDescription execute:", err);
+            return {
+              success: false,
+              error: true,
+              message: `Failed to ingest job description: ${err instanceof Error ? err.message : String(err)}`,
+            };
+          }
+        },
+      }),
+
       scoreJobFit: tool({
         description: "Analyze candidate fit for a job posting across skills, experience, domain, and trajectory.",
         inputSchema: ScoreJobFitSchema,

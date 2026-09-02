@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { repairStringifiedContainers } from "./repair-tool-input";
-import { ScoreJobFitSchema } from "./tool-schemas";
+import { ScoreJobFitSchema, IngestJobDescriptionSchema } from "./tool-schemas";
 
 describe("repairStringifiedContainers", () => {
   it("parses JSON arrays that arrived as strings", () => {
@@ -91,4 +91,32 @@ describe("repair feeding tool input validation", () => {
       gaps: ["Kubernetes", "Docker"],
     });
   });
+
+  it("repairs degraded ingestJobDescription payload with stringified arrays", () => {
+    const degradedJob = JSON.stringify({
+      title: "Senior Backend Engineer",
+      company: "Stripe",
+      location: "San Francisco, CA",
+      requiredSkills: "['Go', 'PostgreSQL', 'Distributed Systems']",
+      preferredSkills: "['Docker', 'Kubernetes']",
+      responsibilities: "['Design robust payment APIs', 'Optimize database throughput']",
+      experienceLevel: "Senior (5+ years)",
+      rawDescription: "Senior Backend Engineer role at Stripe.",
+    });
+
+    expect(IngestJobDescriptionSchema.safeParse(JSON.parse(degradedJob)).success).toBe(false);
+
+    const repaired = repairStringifiedContainers(degradedJob);
+    expect(repaired).not.toBeNull();
+    const result = IngestJobDescriptionSchema.safeParse(JSON.parse(repaired!));
+    expect(result.success).toBe(true);
+    expect(result.success && result.data).toMatchObject({
+      title: "Senior Backend Engineer",
+      company: "Stripe",
+      requiredSkills: ["Go", "PostgreSQL", "Distributed Systems"],
+      preferredSkills: ["Docker", "Kubernetes"],
+      responsibilities: ["Design robust payment APIs", "Optimize database throughput"],
+    });
+  });
 });
+

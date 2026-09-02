@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { asSchema } from "ai";
 import type { z } from "zod";
-import { ScoreJobFitSchema, TailorResumeSchema, TriggerBatchWorkflowSchema } from "./tool-schemas";
+import {
+  ScoreJobFitSchema,
+  TailorResumeSchema,
+  TriggerBatchWorkflowSchema,
+  IngestJobDescriptionSchema,
+} from "./tool-schemas";
 import { InterviewPrepSchema } from "./interview";
 import { CandidateUpdateSchema } from "./candidate";
 
@@ -11,6 +16,7 @@ const TOOL_INPUT_SCHEMAS: [string, z.ZodType][] = [
   ["generateInterviewPrep", InterviewPrepSchema],
   ["triggerBatchWorkflow", TriggerBatchWorkflowSchema],
   ["updateCandidateProfile", CandidateUpdateSchema],
+  ["ingestJobDescription", IngestJobDescriptionSchema],
 ];
 
 function collectDefaultPaths(node: unknown, path: string[] = []): string[] {
@@ -72,4 +78,19 @@ describe("Tool input schemas", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("accepts the ingestJobDescription payload Workers AI emits", () => {
+    const result = IngestJobDescriptionSchema.safeParse({
+      title: "Senior Backend Engineer",
+      company: "Stripe",
+      location: "San Francisco, CA / Remote",
+      requiredSkills: ["Go", "Distributed Systems", "PostgreSQL"],
+      preferredSkills: ["Kubernetes", "AWS"],
+      responsibilities: ["Scale payment processing infrastructure", "Design high-availability APIs"],
+      experienceLevel: "Senior (5+ years)",
+      rawDescription: "Join Stripe as a Senior Backend Engineer on Payments Infrastructure.",
+    });
+    expect(result.success).toBe(true);
+  });
 });
+

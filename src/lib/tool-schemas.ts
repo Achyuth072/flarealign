@@ -31,3 +31,15 @@ export const TriggerBatchWorkflowSchema = z.object({
   company: z.string().describe("Hiring company name, e.g. 'Cloudflare'"),
   jobDescription: z.string().optional().describe("Job description"),
 });
+
+export const IngestJobDescriptionSchema = z.object({
+  title: z.string().describe("Target job title, e.g. 'Senior Systems Engineer' or 'Staff Software Engineer'"),
+  company: z.string().describe("Hiring company name, e.g. 'Cloudflare' or 'Acme Corp'"),
+  location: z.string().optional().describe("Job location (e.g. 'San Francisco, CA', 'Remote', 'Hybrid')"),
+  requiredSkills: z.array(z.string()).describe("List of mandatory technical and domain skills required for the role"),
+  preferredSkills: z.array(z.string()).optional().describe("List of nice-to-have or preferred skills"),
+  responsibilities: z.array(z.string()).optional().describe("Core job duties and responsibilities"),
+  experienceLevel: z.string().optional().describe("Expected experience or seniority level, e.g. 'Senior (5+ years)', 'Mid-Senior Level'"),
+  rawDescription: z.string().optional().describe("Original raw text or pasted description of the job posting"),
+});
+
