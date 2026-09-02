@@ -5,11 +5,12 @@ import type { CandidateProfile, ApiResponse } from "../types";
 interface EditProfileModalProps {
   candidate: CandidateProfile;
   isOpen: boolean;
+  userId?: string;
   onClose: () => void;
   onSave: (updated: CandidateProfile) => void;
 }
 
-export function EditProfileModal({ candidate, isOpen, onClose, onSave }: EditProfileModalProps) {
+export function EditProfileModal({ candidate, isOpen, userId, onClose, onSave }: EditProfileModalProps) {
   const [formData, setFormData] = useState({
     name: candidate.name,
     location: candidate.location,
@@ -69,7 +70,8 @@ export function EditProfileModal({ candidate, isOpen, onClose, onSave }: EditPro
     };
 
     try {
-      const res = await fetch("/api/candidate", {
+      const endpoint = userId ? `/api/candidate?userId=${encodeURIComponent(userId)}` : "/api/candidate";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

@@ -18,6 +18,7 @@ import {
   TailorResumeSchema,
   TriggerBatchWorkflowSchema,
 } from "../lib/tool-schemas";
+import { formatUserActorName, parseUserIdFromAgentName } from "../lib/session";
 
 export interface CareerAgentState {
   candidateId: string;
@@ -159,8 +160,27 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     this.initDatabase();
   }
 
+  private getUserId(): string | null {
+    return parseUserIdFromAgentName(this.name);
+  }
+
   async getCandidate(): Promise<CandidateProfile> {
     this.initDatabase();
+
+    const userId = this.getUserId();
+    if (this.name?.startsWith("session") && userId && this.env?.CareerAgent) {
+      try {
+        const userActorName = formatUserActorName(userId);
+        const userStub = this.env.CareerAgent.get(this.env.CareerAgent.idFromName(userActorName));
+        const profile = await (
+          userStub as unknown as { getCandidate: () => Promise<CandidateProfile> }
+        ).getCandidate();
+        if (profile) return profile;
+      } catch (err) {
+        console.warn("[CareerAgent] Failed to fetch candidate from user DO actor:", err);
+      }
+    }
+
     const rows = this.sql`SELECT data FROM candidates WHERE id = ${DEFAULT_CANDIDATE_PROFILE.id}`;
     if (rows && rows.length > 0) {
       try {
@@ -178,6 +198,19 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
       INSERT OR REPLACE INTO candidates (id, name, data, updated_at)
       VALUES (${profile.id}, ${profile.name}, ${JSON.stringify(profile)}, ${Date.now()})
     `;
+
+    const userId = this.getUserId();
+    if (this.name?.startsWith("session") && userId && this.env?.CareerAgent) {
+      try {
+        const userActorName = formatUserActorName(userId);
+        const userStub = this.env.CareerAgent.get(this.env.CareerAgent.idFromName(userActorName));
+        await (
+          userStub as unknown as { updateCandidate: (p: CandidateProfile) => Promise<void> }
+        ).updateCandidate(profile);
+      } catch (err) {
+        console.warn("[CareerAgent] Failed to sync candidate to user DO actor:", err);
+      }
+    }
   }
 
   override async onChatMessage(

@@ -19,6 +19,7 @@ import { FitScoreView } from "./components/FitScoreView";
 import { TailorResumeView } from "./components/TailorResumeView";
 import { InterviewPrepView } from "./components/InterviewPrepView";
 import { EditProfileModal } from "./components/EditProfileModal";
+import { getClientSessionConfig } from "./session";
 
 function renderToolPart(part: ToolPartLike, pIdx: number) {
   const toolName = part.type?.startsWith("tool-")
@@ -150,24 +151,28 @@ export function App() {
   const [workflowStatus, setWorkflowStatus] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Connect to CareerAgent Durable Object Actor
+  // Stable session configuration initialized once per page load
+  const [{ userId, agentSessionName }] = useState(() => getClientSessionConfig());
+
+  // Connect to CareerAgent Durable Object Actor with isolated session
   const agent = useAgent({
     agent: "CareerAgent",
-    name: "candidate-session",
+    name: agentSessionName,
   });
 
   const { messages, sendMessage, clearHistory, status } = useAgentChat({
     agent,
+    getInitialMessages: null,
   });
 
   useEffect(() => {
-    fetch("/api/candidate")
+    fetch(`/api/candidate?userId=${encodeURIComponent(userId)}`)
       .then((res) => res.json() as Promise<ApiResponse<CandidateProfile>>)
       .then((data) => {
         if (data.candidate) setCandidate(data.candidate);
       })
       .catch((err) => console.error("Failed to load candidate:", err));
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -512,6 +517,7 @@ export function App() {
         <EditProfileModal
           candidate={candidate}
           isOpen={isEditModalOpen}
+          userId={userId}
           onClose={() => setIsEditModalOpen(false)}
           onSave={(updated) => setCandidate(updated)}
         />

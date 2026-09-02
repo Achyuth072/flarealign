@@ -8,6 +8,7 @@ import {
   patchCandidateProfile,
 } from "./lib/candidate";
 import { makeId } from "./lib/scoring";
+import { formatUserActorName } from "./lib/session";
 
 export { CareerAgent, TailoringWorkflow };
 
@@ -32,6 +33,9 @@ export default {
 
     // 2. Candidate Profile endpoint (GET and POST/PUT for persistence)
     if (url.pathname === "/api/candidate") {
+      const rawUserId = url.searchParams.get("userId") || request.headers.get("x-user-id");
+      const actorName = rawUserId ? formatUserActorName(rawUserId) : "candidate-session";
+
       if (request.method === "POST" || request.method === "PUT") {
         try {
           const body = await request.json();
@@ -39,7 +43,7 @@ export default {
           let updatedCandidate: CandidateProfile;
 
           if (env.CareerAgent) {
-            const id = env.CareerAgent.idFromName("candidate-session");
+            const id = env.CareerAgent.idFromName(actorName);
             const stub = env.CareerAgent.get(id);
             const current =
               (await (
@@ -68,7 +72,7 @@ export default {
       // Default GET: Fetch current profile from Durable Object SQLite or fallback
       try {
         if (env.CareerAgent) {
-          const id = env.CareerAgent.idFromName("candidate-session");
+          const id = env.CareerAgent.idFromName(actorName);
           const stub = env.CareerAgent.get(id);
           const candidate = await (
             stub as unknown as { getCandidate: () => Promise<CandidateProfile> }
