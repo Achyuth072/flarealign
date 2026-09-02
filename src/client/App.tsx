@@ -253,7 +253,7 @@ export function App() {
           aria-label="FlareAlign Copilot Workspace"
           className="flex-1 flex flex-col h-full bg-[#08080A] overflow-hidden"
         >
-          <div className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full px-6 py-4">
+          <div className="flex-1 flex flex-col h-full w-full px-6 py-4">
             {/* Header Title Bar with Clear Chat */}
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-[#2F333E] shrink-0">
               <div className="flex items-center gap-2.5">
@@ -383,7 +383,7 @@ export function App() {
                     return (
                       <div
                         key={msg.id || index}
-                        className={`flex gap-3 max-w-3xl ${isUser ? "ml-auto" : "mr-auto"} animate-fade-in`}
+                        className={`flex gap-3 ${isUser ? "max-w-2xl ml-auto" : "w-full"} animate-fade-in`}
                       >
                         {!isUser && (
                           <div className="w-8 h-8 rounded-md bg-[#F6821F] text-[#0C0D0E] flex items-center justify-center shrink-0 font-bold" aria-hidden="true">
