@@ -6,17 +6,11 @@ export type WorkersAIBinding = Extract<
 >["binding"];
 
 /**
- * Workers AI repeats streamed content twice on the same SSE event: once
- * under a native top-level field (`tool_calls`, `response`) and again under
- * the OpenAI-compatible equivalent (`choices[0].delta.tool_calls`,
- * `choices[0].delta.content`). workers-ai-provider@4.0.0 reads each pair in
- * independent `if` branches, so it appends both — tool-call arguments arrive
- * interleaved and fail JSON.parse (`{"jobTitle": "{"jobTitle": "`), and plain
- * assistant text arrives with every token doubled ("This This function
- * function call call...").
- *
- * Drop the native envelope on events that carry both, leaving exactly one for
- * the provider. Events using only the native shape pass through untouched.
+ * Multi-step tool calls can reuse the same id across steps, but
+ * workers-ai-provider keys its internal state by id, so a repeat collides
+ * with the earlier step's entry. Callers append a `::cf-wai-tool-call::`
+ * marker to keep ids unique before handing them to the provider; this strips
+ * it back off so the id sent to Workers AI matches what the client expects.
  */
 export function stripToolCallIdMarker(id: string): string {
   const marker = "::cf-wai-tool-call::";
@@ -60,6 +54,19 @@ export function normalizeToolCallIds(inputs: unknown): unknown {
   return { ...req, messages: normalizedMessages };
 }
 
+/**
+ * Workers AI repeats streamed content twice on the same SSE event: once
+ * under a native top-level field (`tool_calls`, `response`) and again under
+ * the OpenAI-compatible equivalent (`choices[0].delta.tool_calls`,
+ * `choices[0].delta.content`). workers-ai-provider@4.0.0 reads each pair in
+ * independent `if` branches, so it appends both — tool-call arguments arrive
+ * interleaved and fail JSON.parse (`{"jobTitle": "{"jobTitle": "`), and plain
+ * assistant text arrives with every token doubled ("This This function
+ * function call call...").
+ *
+ * Drop the native envelope on events that carry both, leaving exactly one for
+ * the provider. Events using only the native shape pass through untouched.
+ */
 export function withDedupedToolCallEnvelopes(binding: WorkersAIBinding): WorkersAIBinding {
   return new Proxy(binding, {
     get(target, prop, receiver) {

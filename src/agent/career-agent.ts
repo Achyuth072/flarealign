@@ -151,7 +151,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
       }
     }
 
-    // Save and normalize as new active job, invalidating stale downstream records
+    // Invalidate stale downstream records (fit scores, applications) tied to the previous active job
     const job = normalizeJobPosting({
       title: trimmedTitle || "Software Engineer",
       company: trimmedCompany || "Target Company",
@@ -217,7 +217,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     const job = normalizeJobPosting(input);
     const row = jobPostingToRow(job);
 
-    // Invalidate prior jobs and stale evaluations to prevent orphaned jobs and stale recommendations
+    // Invalidate stale downstream records (fit scores, applications) tied to the previous active job
     try {
       this.sql`DELETE FROM jobs WHERE id != ${row.id}`;
       this.sql`DELETE FROM fit_scores`;
