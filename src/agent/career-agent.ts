@@ -154,51 +154,75 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           reasoning: z.string().describe("Summary of evaluation reasoning"),
         }),
         execute: async (args) => {
-          const subDimensions = {
-            skillsFit: args.skillsFit,
-            experienceFit: args.experienceFit,
-            domainFit: args.domainFit,
-            trajectoryFit: args.trajectoryFit,
-          };
-          const compositeScore = computeCompositeFitScore(subDimensions);
-          const recommendation = deriveRecommendation(compositeScore);
-          const jobId = makeId("job");
-          const scoreId = makeId("score");
+          try {
+            const subDimensions = {
+              skillsFit: args.skillsFit,
+              experienceFit: args.experienceFit,
+              domainFit: args.domainFit,
+              trajectoryFit: args.trajectoryFit,
+            };
+            const compositeScore = computeCompositeFitScore(subDimensions);
+            const recommendation = deriveRecommendation(compositeScore);
+            const jobId = makeId("job");
+            const scoreId = makeId("score");
 
-          this.sql`
-            INSERT OR REPLACE INTO jobs (id, title, company, description, created_at)
-            VALUES (${jobId}, ${args.jobTitle}, ${args.company}, ${args.jobDescription}, ${Date.now()})
-          `;
+            this.sql`
+              INSERT OR REPLACE INTO jobs (id, title, company, description, created_at)
+              VALUES (${jobId}, ${args.jobTitle}, ${args.company}, ${args.jobDescription}, ${Date.now()})
+            `;
 
-          const breakdown = JSON.stringify({
-            subDimensions,
-            strengths: args.strengths,
-            gaps: args.gaps,
-            reasoning: args.reasoning,
-          });
-
-          this.sql`
-            INSERT OR REPLACE INTO fit_scores (id, job_id, score, recommendation, breakdown, created_at)
-            VALUES (${scoreId}, ${jobId}, ${compositeScore}, ${recommendation}, ${breakdown}, ${Date.now()})
-          `;
-
-          this.setState({
-            ...this.state,
-            activeJobId: jobId,
-            lastScore: compositeScore,
-          });
-
-          return {
-            jobId,
-            compositeScore,
-            recommendation,
-            breakdown: {
+            const breakdown = JSON.stringify({
               subDimensions,
               strengths: args.strengths,
               gaps: args.gaps,
               reasoning: args.reasoning,
-            },
-          };
+            });
+
+            this.sql`
+              INSERT OR REPLACE INTO fit_scores (id, job_id, score, recommendation, breakdown, created_at)
+              VALUES (${scoreId}, ${jobId}, ${compositeScore}, ${recommendation}, ${breakdown}, ${Date.now()})
+            `;
+
+            this.setState({
+              ...this.state,
+              activeJobId: jobId,
+              lastScore: compositeScore,
+            });
+
+            return {
+              jobId,
+              compositeScore,
+              recommendation,
+              breakdown: {
+                subDimensions,
+                strengths: args.strengths,
+                gaps: args.gaps,
+                reasoning: args.reasoning,
+              },
+            };
+          } catch (err) {
+            // Return structured error instead of throwing, to prevent retry loops
+            const subDimensions = {
+              skillsFit: args.skillsFit,
+              experienceFit: args.experienceFit,
+              domainFit: args.domainFit,
+              trajectoryFit: args.trajectoryFit,
+            };
+            const compositeScore = computeCompositeFitScore(subDimensions);
+            const recommendation = deriveRecommendation(compositeScore);
+            return {
+              error: true,
+              message: `Score computed but failed to persist: ${err instanceof Error ? err.message : String(err)}`,
+              compositeScore,
+              recommendation,
+              breakdown: {
+                subDimensions,
+                strengths: args.strengths,
+                gaps: args.gaps,
+                reasoning: args.reasoning,
+              },
+            };
+          }
         },
       }),
 
@@ -212,16 +236,27 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           executiveSummary: z.string().describe("Tailored 2-3 sentence executive summary"),
         }),
         execute: async (args) => {
-          const activeJobId = this.ensureActiveJobId(args.jobTitle, args.company);
-          const applicationId = this.upsertApplication(activeJobId, { tailored_resume: args });
+          try {
+            const activeJobId = this.ensureActiveJobId(args.jobTitle, args.company);
+            const applicationId = this.upsertApplication(activeJobId, { tailored_resume: args });
 
-          return {
-            applicationId,
-            jobTitle: args.jobTitle,
-            company: args.company,
-            executiveSummary: args.executiveSummary,
-            tailoredBullets: args.tailoredBullets,
-          };
+            return {
+              applicationId,
+              jobTitle: args.jobTitle,
+              company: args.company,
+              executiveSummary: args.executiveSummary,
+              tailoredBullets: args.tailoredBullets,
+            };
+          } catch (err) {
+            return {
+              error: true,
+              message: `Failed to persist tailored resume: ${err instanceof Error ? err.message : String(err)}`,
+              jobTitle: args.jobTitle,
+              company: args.company,
+              executiveSummary: args.executiveSummary,
+              tailoredBullets: args.tailoredBullets,
+            };
+          }
         },
       }),
 
@@ -229,16 +264,28 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
         description: "Formulate technical and behavioral interview preparation with structured STAR-method responses and systems design focus points.",
         inputSchema: InterviewPrepSchema,
         execute: async (args) => {
-          const activeJobId = this.ensureActiveJobId(args.jobTitle, args.company);
-          this.upsertApplication(activeJobId, { interview_prep: args });
+          try {
+            const activeJobId = this.ensureActiveJobId(args.jobTitle, args.company);
+            this.upsertApplication(activeJobId, { interview_prep: args });
 
-          return {
-            jobTitle: args.jobTitle,
-            company: args.company,
-            technicalQuestions: args.technicalQuestions,
-            behavioralQuestions: args.behavioralQuestions,
-            systemDesignFocus: args.systemDesignFocus,
-          };
+            return {
+              jobTitle: args.jobTitle,
+              company: args.company,
+              technicalQuestions: args.technicalQuestions,
+              behavioralQuestions: args.behavioralQuestions,
+              systemDesignFocus: args.systemDesignFocus,
+            };
+          } catch (err) {
+            return {
+              error: true,
+              message: `Failed to persist interview prep: ${err instanceof Error ? err.message : String(err)}`,
+              jobTitle: args.jobTitle,
+              company: args.company,
+              technicalQuestions: args.technicalQuestions,
+              behavioralQuestions: args.behavioralQuestions,
+              systemDesignFocus: args.systemDesignFocus,
+            };
+          }
         },
       }),
 
@@ -250,22 +297,30 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           jobDescription: z.string(),
         }),
         execute: async (args) => {
-          const workflowJobId = makeId("wf-job");
-          const instance = await this.env.TAILORING_WORKFLOW.create({
-            params: {
-              jobId: workflowJobId,
-              jobTitle: args.jobTitle,
-              company: args.company,
-              jobDescription: args.jobDescription,
-            },
-          });
+          try {
+            const workflowJobId = makeId("wf-job");
+            const instance = await this.env.TAILORING_WORKFLOW.create({
+              params: {
+                jobId: workflowJobId,
+                jobTitle: args.jobTitle,
+                company: args.company,
+                jobDescription: args.jobDescription,
+              },
+            });
 
-          return {
-            status: "WORKFLOW_TRIGGERED",
-            workflowInstanceId: instance.id,
-            jobId: workflowJobId,
-            message: `Background Cloudflare Workflow triggered successfully (Instance: ${instance.id}).`,
-          };
+            return {
+              status: "WORKFLOW_TRIGGERED",
+              workflowInstanceId: instance.id,
+              jobId: workflowJobId,
+              message: `Background Cloudflare Workflow triggered successfully (Instance: ${instance.id}).`,
+            };
+          } catch (err) {
+            return {
+              status: "WORKFLOW_ERROR",
+              error: true,
+              message: `Failed to trigger workflow: ${err instanceof Error ? err.message : String(err)}`,
+            };
+          }
         },
       }),
 
@@ -282,18 +337,26 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           "Update candidate profile fields such as name, location, targetRole, yearsOfExperience, skills, or resumeSummary in persistent SQLite storage.",
         inputSchema: CandidateUpdateSchema,
         execute: async (patch) => {
-          const current = await this.getCandidate();
-          const updated = patchCandidateProfile(current, patch);
-          await this.updateCandidate(updated);
-          this.setState({
-            ...this.state,
-            candidateName: updated.name,
-          });
-          return {
-            success: true,
-            message: `Candidate profile for ${updated.name} updated successfully.`,
-            candidate: updated,
-          };
+          try {
+            const current = await this.getCandidate();
+            const updated = patchCandidateProfile(current, patch);
+            await this.updateCandidate(updated);
+            this.setState({
+              ...this.state,
+              candidateName: updated.name,
+            });
+            return {
+              success: true,
+              message: `Candidate profile for ${updated.name} updated successfully.`,
+              candidate: updated,
+            };
+          } catch (err) {
+            return {
+              success: false,
+              error: true,
+              message: `Failed to update profile: ${err instanceof Error ? err.message : String(err)}`,
+            };
+          }
         },
       }),
     };
@@ -303,7 +366,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
       system: getSystemPrompt(candidate),
       messages: await convertToModelMessages(this.messages),
       tools,
-      stopWhen: isStepCount(5),
+      stopWhen: isStepCount(2),
       abortSignal: options?.abortSignal,
     });
 

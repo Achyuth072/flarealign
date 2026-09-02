@@ -10,6 +10,7 @@ import {
   Zap,
   CheckCircle2,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 import type { CandidateProfile, ToolPartLike, ApiResponse, ScoreJobFitData, TailorResumeData, InterviewPrep } from "./types";
 import { Header } from "./components/Header";
@@ -24,6 +25,44 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
     ? part.type.replace("tool-", "")
     : part.toolName || part.type;
   const payload = part.output || part.input;
+  const isPending =
+    part.state === "input-streaming" ||
+    part.state === "input-available" ||
+    (!part.output && !part.input && !part.errorText && !part.error);
+  const isError = part.state === "output-error" || Boolean(part.errorText) || Boolean(part.error);
+
+  if (isPending) {
+    return (
+      <div
+        key={pIdx}
+        className="mt-3 p-4 rounded-xl bg-[#141518] border border-[#2F333E] font-mono text-xs flex items-center justify-between"
+      >
+        <div className="flex items-center gap-2.5 text-[#FB923C]">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#FB923C] animate-pulse" aria-hidden="true" />
+          <span className="font-semibold">Executing {toolName} on Cloudflare Edge...</span>
+        </div>
+        <span className="badge badge-neutral badge-sm font-mono text-[#94A3B8] border border-[#3B3F4E]">
+          Workers AI
+        </span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div
+        key={pIdx}
+        className="mt-3 p-4 rounded-xl bg-red-950/40 border border-red-800/60 font-mono text-xs text-red-200 space-y-1"
+      >
+        <div className="font-bold text-red-400 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" /> Tool Execution Error: {toolName}
+        </div>
+        <p className="text-xs text-red-300">
+          {part.errorText || (part.error ? String(part.error) : "An error occurred during tool execution.")}
+        </p>
+      </div>
+    );
+  }
 
   if (toolName === "generateInterviewPrep" && payload) {
     return <InterviewPrepView key={pIdx} data={payload as Partial<InterviewPrep>} />;

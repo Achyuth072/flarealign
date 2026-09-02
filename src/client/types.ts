@@ -34,8 +34,11 @@ export interface TailorResumeData {
 export interface ToolPartLike {
   type?: string;
   toolName?: string;
+  state?: "input-streaming" | "input-available" | "approval-requested" | "approval-responded" | "output-available" | "output-error" | string;
   output?: unknown;
   input?: unknown;
+  errorText?: string;
+  error?: unknown;
 }
 
 export type { CandidateProfile, InterviewPrep, BehavioralQuestion, TechnicalQuestion, FitScoreSubDimensions };
