@@ -1,118 +1,62 @@
 # FlareAlign
 
+**Live application**: https://cloudflare-agent.achyuthsuchit.workers.dev/
+
 ## About This Application
 
-FlareAlign is an AI agent. The agent helps a job candidate to prepare a job application.
+FlareAlign is an AI agent that helps a job candidate to prepare a job application. The agent runs on Cloudflare Workers and uses Cloudflare Workers AI for the language model (LLM).
 
-The agent runs on the Cloudflare Workers platform. The agent uses Cloudflare Workers AI to run a large language model (LLM).
+The agent can:
 
-The agent can do these tasks:
+- Compare a candidate profile with a job description and give a fit score.
+- Write resume text for a specific job.
+- Write STAR-method interview questions and answers.
+- Start a multi-step workflow that processes a job application.
 
-- The agent can compare a candidate profile with a job description. The agent gives a fit score for the job.
-- The agent can write resume text for a specific job.
-- The agent can write interview questions and answers. The agent uses the STAR method for these answers.
-- The agent can start a multi-step workflow. The workflow processes a job application.
+A user talks to the agent through a chat window that shows replies in real time.
 
-A user sends messages to the agent through a chat window. The chat window shows the agent's replies in real time.
+## Technology
 
-## Technology in This Application
-
-This application uses these technologies:
-
-- **React**: the library for the user interface (UI).
-- **Vite**: the build tool for the UI.
-- **Cloudflare Workers**: the platform that runs the agent code.
-- **Cloudflare Durable Objects**: the storage for candidate data, job data, and score data.
-- **Cloudflare Workflows**: the tool that runs the multi-step application workflow.
-- **Cloudflare Workers AI**: the service that runs the LLM.
-- **TypeScript**: the programming language for this application.
-- **Vitest**: the tool for the automated tests.
+- **React** and **Vite**: the user interface.
+- **Cloudflare Workers**: runs the agent code.
+- **Cloudflare Durable Objects**: stores candidate, job, and score data.
+- **Cloudflare Workflows**: runs the multi-step application workflow.
+- **Cloudflare Workers AI**: runs the LLM.
+- **TypeScript** and **Vitest**: the language and test tool.
 
 ## Requirements
 
-You must have these items before you install this application:
-
-- Node.js, version 24 or a later version.
-- npm, the Node.js package manager.
+- Node.js 24 or later.
+- npm.
 - A Cloudflare account.
 
-## Installation Steps
-
-Do these steps to install this application:
-
-1. Open a terminal window.
-2. Go to the project directory.
-3. Type this command to install the packages:
-
-   ```
-   npm install
-   ```
-
-4. Type this command to log in to your Cloudflare account:
-
-   ```
-   npx wrangler login
-   ```
-
-## How to Start the Application on Your Computer
-
-Type this command to start the application:
+## Setup
 
 ```
-npm run dev
+git clone https://github.com/Achyuth072/flarealign.git
+cd flarealign
+npm install
+npx wrangler login
 ```
 
-This command starts the Worker and the UI on your computer. Open the URL in the terminal output to see the application.
+## Commands
 
-## How to Test the Application
-
-Type this command to run the automated tests:
-
-```
-npm test
-```
-
-## How to Check the Code Types
-
-Type this command to check the TypeScript code types:
-
-```
-npm run typecheck
-```
-
-## How to Build the Application
-
-Type this command to build the application for production use:
-
-```
-npm run build
-```
-
-This command builds the UI files. This command also checks the code types.
-
-## How to Deploy the Application
-
-Type this command to deploy the application to Cloudflare Workers:
-
-```
-npm run deploy
-```
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the Worker and UI on your computer. |
+| `npm test` | Run the automated tests. |
+| `npm run typecheck` | Check the TypeScript types. |
+| `npm run build` | Build the UI and check types, for production. |
+| `npm run deploy` | Deploy the application to Cloudflare Workers. |
 
 ## Project Structure
 
-This list shows the main directories in this project:
-
-- `src/agent`: the code for the AI agent.
-- `src/workflows`: the code for the multi-step workflow.
-- `src/client`: the code for the React user interface.
+- `src/agent`: the AI agent code.
+- `src/workflows`: the multi-step workflow code.
+- `src/client`: the React user interface.
 - `src/lib`: shared code, for example the fit-score calculation.
 - `docs`: reference documents about the agent.
 
-## Configuration File
+## Configuration
 
-The file `wrangler.jsonc` has the configuration for this application. This file sets these bindings:
-
-- The AI binding, for the LLM.
-- The Durable Object binding, for the agent's storage.
-- The Workflow binding, for the multi-step workflow.
-- The Assets binding, for the built UI files.
+`wrangler.jsonc` sets the bindings this application needs: AI (the LLM), the Durable Object (agent storage), the Workflow, and Assets (the built UI files).
