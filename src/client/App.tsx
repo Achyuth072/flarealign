@@ -298,11 +298,11 @@ export function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobTitle: job?.title || "Software Engineer – Edge Platform & DevEx",
-          company: job?.company || "Cloudflare",
+          jobTitle: job?.title || "Software Engineer",
+          company: job?.company || "Target Company",
           jobDescription:
             job?.rawDescription ||
-            "Architect edge-native platforms, developer tooling, Workers AI integration, and Durable Objects distributed systems at Cloudflare.",
+            (job ? `${job.title} at ${job.company}` : "Software engineering role requirements and responsibilities."),
         }),
       });
       const data = (await res.json()) as ApiResponse<unknown>;

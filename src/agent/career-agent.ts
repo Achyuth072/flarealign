@@ -331,6 +331,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
   ) {
     this.initDatabase();
     const candidate = await this.getCandidate();
+    const activeJob = await this.getActiveJob();
     console.log("[CareerAgent] onChatMessage turn started. History length:", this.messages.length);
     const workersai = createWorkersAI({
       binding: withDedupedToolCallEnvelopes(this.env.AI as unknown as WorkersAIBinding),
@@ -384,19 +385,8 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           const recommendation = deriveRecommendation(compositeScore);
 
           try {
-            const jobId = makeId("job");
+            const activeJobId = this.ensureActiveJobId(args.jobTitle, args.company, args.jobDescription || "");
             const scoreId = makeId("score");
-            const now = Date.now();
-
-            this.sql`
-              INSERT OR REPLACE INTO jobs (
-                id, title, company, location, required_skills, preferred_skills,
-                responsibilities, experience_level, raw_description, created_at, updated_at
-              )
-              VALUES (
-                ${jobId}, ${args.jobTitle}, ${args.company}, 'Remote', '[]', '[]', '[]', 'Mid-Senior Level', ${args.jobDescription || ""}, ${now}, ${now}
-              )
-            `;
 
             const breakdown = JSON.stringify({
               subDimensions,
@@ -407,17 +397,17 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
 
             this.sql`
               INSERT OR REPLACE INTO fit_scores (id, job_id, score, recommendation, breakdown, created_at)
-              VALUES (${scoreId}, ${jobId}, ${compositeScore}, ${recommendation}, ${breakdown}, ${Date.now()})
+              VALUES (${scoreId}, ${activeJobId}, ${compositeScore}, ${recommendation}, ${breakdown}, ${Date.now()})
             `;
 
             this.setState({
               ...this.state,
-              activeJobId: jobId,
+              activeJobId,
               lastScore: compositeScore,
             });
 
             return {
-              jobId,
+              jobId: activeJobId,
               compositeScore,
               recommendation,
               breakdown: {
@@ -569,7 +559,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
 
     const result = streamText({
       model: workersai("@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
-      system: getSystemPrompt(candidate),
+      system: getSystemPrompt(candidate, activeJob),
       messages: await convertToModelMessages(this.messages),
       tools,
       stopWhen: isStepCount(5),

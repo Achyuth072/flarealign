@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   computeCompositeFitScore,
   deriveRecommendation,
+  evaluateCandidateJobFit,
   validateWeights,
   makeId,
   DEFAULT_FIT_SCORE_WEIGHTS,
@@ -190,6 +191,102 @@ describe("Scoring Domain Logic", () => {
     expect(Number.isNaN(score)).toBe(false);
     expect(score).toBeGreaterThanOrEqual(0);
     expect(score).toBeLessThanOrEqual(100);
+  });
+});
+
+describe("evaluateCandidateJobFit Dynamic Heuristic Engine", () => {
+  const mockCandidate = {
+    name: "Alex Smith",
+    targetRole: "Senior Systems Engineer",
+    yearsOfExperience: 5,
+    skills: ["TypeScript", "Go", "PostgreSQL", "Docker", "Distributed Systems", "REST"],
+    experiences: [
+      {
+        role: "Systems Engineer",
+        company: "CloudTech",
+        period: "2021 - Present",
+        highlights: ["Architected distributed messaging queue using Go and PostgreSQL."],
+      },
+    ],
+    projects: [
+      {
+        name: "Edge Cache Engine",
+        description: "High performance key-value cache built in Go with distributed replication.",
+        techStack: ["Go", "Distributed Systems", "Docker"],
+      },
+    ],
+    resumeSummary: "Backend and systems engineer specializing in Go, distributed platforms, and high-throughput databases.",
+  };
+
+  it("evaluates a well-matched dynamic job posting (e.g. Stripe Backend Engineer)", () => {
+    const stripeJob = {
+      title: "Senior Backend Engineer",
+      company: "Stripe",
+      location: "San Francisco, CA / Remote",
+      requiredSkills: ["Go", "PostgreSQL", "Distributed Systems"],
+      preferredSkills: ["Docker"],
+      responsibilities: ["Scale core ledger and payment transaction pipelines"],
+      experienceLevel: "Senior (5+ years)",
+      rawDescription: "Join Stripe to scale distributed transaction systems and backend databases.",
+    };
+
+    const evaluation = evaluateCandidateJobFit(mockCandidate, stripeJob);
+
+    expect(evaluation.score).toBeGreaterThanOrEqual(80);
+    expect(evaluation.recommendation).toBe("Strong Fit");
+    expect(evaluation.subDimensions.skillsFit).toBeGreaterThanOrEqual(90);
+    expect(evaluation.subDimensions.experienceFit).toBeGreaterThanOrEqual(90);
+    expect(evaluation.strengths.length).toBeGreaterThan(0);
+    expect(evaluation.strengths.some((s) => s.includes("Go"))).toBe(true);
+    expect(evaluation.reasoning).toContain("Senior Backend Engineer at Stripe");
+  });
+
+  it("identifies skill gaps when candidate lacks required skills for a role", () => {
+    const aiJob = {
+      title: "Senior Machine Learning Engineer",
+      company: "OpenAI",
+      requiredSkills: ["PyTorch", "CUDA", "C++", "Transformer Architectures"],
+      preferredSkills: ["Triton"],
+      experienceLevel: "Senior (5+ years)",
+      rawDescription: "Build large language model training infrastructure.",
+    };
+
+    const evaluation = evaluateCandidateJobFit(mockCandidate, aiJob);
+
+    expect(evaluation.subDimensions.skillsFit).toBeLessThanOrEqual(50);
+    expect(evaluation.gaps.length).toBeGreaterThan(0);
+    expect(evaluation.gaps.some((g) => g.includes("PyTorch") || g.includes("CUDA"))).toBe(true);
+    expect(["Potential Fit", "Low Fit"]).toContain(evaluation.recommendation);
+  });
+
+  it("calibrates experience depth score for Principal (8+ YOE) roles when candidate has 5 YOE", () => {
+    const principalJob = {
+      title: "Principal Infrastructure Architect",
+      company: "Datadog",
+      requiredSkills: ["Go", "Distributed Systems"],
+      experienceLevel: "Principal (8+ years)",
+      rawDescription: "Lead global platform architecture across multi-region clusters.",
+    };
+
+    const evaluation = evaluateCandidateJobFit(mockCandidate, principalJob);
+
+    // 5 YOE applying for 8 YOE Principal
+    expect(evaluation.subDimensions.experienceFit).toBeLessThanOrEqual(75);
+    expect(evaluation.gaps.some((g) => g.includes("years of experience"))).toBe(true);
+  });
+
+  it("evaluates raw description text gracefully when requiredSkills array is empty", () => {
+    const unstructuredJob = {
+      title: "Distributed Systems Developer",
+      company: "Acme Corp",
+      rawDescription: "Looking for an engineer with strong Go, Docker, and PostgreSQL skills to build distributed backends.",
+    };
+
+    const evaluation = evaluateCandidateJobFit(mockCandidate, unstructuredJob);
+
+    expect(evaluation.score).toBeGreaterThan(0);
+    expect(evaluation.subDimensions.skillsFit).toBeGreaterThanOrEqual(60);
+    expect(evaluation.reasoning).toContain("Acme Corp");
   });
 });
 

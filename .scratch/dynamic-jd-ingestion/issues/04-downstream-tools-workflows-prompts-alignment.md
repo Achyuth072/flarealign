@@ -6,10 +6,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Update `scoreJobFit` tool and scoring heuristics to evaluate candidate skills, experience, and domain alignment against the active `JobPosting` data.
-- [ ] Update `generateInterviewPrep` to dynamically generate STAR and technical questions matching the active job's requirements and company context.
-- [ ] Update `TailoringWorkflow` and `tailorResume` to craft targeted summaries and impact bullets for the dynamic job.
-- [ ] Parameterize the agent's system prompt and quick-prompt suggestion chips in `App.tsx` and `prompts.ts` with the active target job's metadata.
-- [ ] Remove all hardcoded Cloudflare role fallback strings across tests, client components, and server endpoints.
-- [ ] End-to-end unit and integration test verification across scoring, workflow, and agent tool execution.
+- [x] Update `scoreJobFit` tool and scoring heuristics to evaluate candidate skills, experience, and domain alignment against the active `JobPosting` data.
+- [x] Update `generateInterviewPrep` to dynamically generate STAR and technical questions matching the active job's requirements and company context.
+- [x] Update `TailoringWorkflow` and `tailorResume` to craft targeted summaries and impact bullets for the dynamic job.
+- [x] Parameterize the agent's system prompt and quick-prompt suggestion chips in `App.tsx` and `prompts.ts` with the active target job's metadata.
+- [x] Remove all hardcoded Cloudflare role fallback strings across tests, client components, and server endpoints.
+- [x] End-to-end unit and integration test verification across scoring, workflow, and agent tool execution.
 

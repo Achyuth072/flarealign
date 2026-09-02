@@ -178,11 +178,11 @@ export default {
         const instance = await env.TAILORING_WORKFLOW.create({
           params: {
             jobId: makeId("api-job"),
-            jobTitle: body.jobTitle || "Software Engineer – Edge Platform & DevEx",
-            company: body.company || "Cloudflare",
+            jobTitle: body.jobTitle || "Software Engineer",
+            company: body.company || "Target Company",
             jobDescription:
               body.jobDescription ||
-              "Looking for a Software Engineer to work on Cloudflare Edge Platform, Workers, and Developer Experience.",
+              "Software engineering role requirements and responsibilities.",
           },
         });
 

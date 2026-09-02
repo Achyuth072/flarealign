@@ -6,8 +6,8 @@ import { z } from "zod";
 // the tool executes. Steer the model with `.describe()` instead of `.default()`.
 
 export const ScoreJobFitSchema = z.object({
-  jobTitle: z.string().describe("Target job title, e.g. 'Software Engineer – Edge Platform & DevEx'"),
-  company: z.string().describe("Hiring company name, e.g. 'Cloudflare'"),
+  jobTitle: z.string().describe("Target job title, e.g. 'Senior Systems Engineer' or 'Staff Platform Engineer'"),
+  company: z.string().describe("Hiring company name, e.g. 'Acme Corp' or 'Cloudflare'"),
   jobDescription: z.string().optional().describe("Full job description text"),
   skillsFit: z.coerce.number().min(0).max(100).describe("Estimated skills alignment score (0-100)"),
   experienceFit: z.coerce.number().min(0).max(100).describe("Estimated experience depth score (0-100)"),
@@ -19,16 +19,16 @@ export const ScoreJobFitSchema = z.object({
 });
 
 export const TailorResumeSchema = z.object({
-  jobTitle: z.string().describe("Target job title, e.g. 'Software Engineer – Edge Platform & DevEx'"),
-  company: z.string().describe("Hiring company name, e.g. 'Cloudflare'"),
-  focusAreas: z.array(z.string()).optional().describe("Key technical focus areas, e.g. Workers, Durable Objects, Workflows, TypeScript"),
+  jobTitle: z.string().describe("Target job title, e.g. 'Senior Systems Engineer'"),
+  company: z.string().describe("Hiring company name, e.g. 'Acme Corp'"),
+  focusAreas: z.array(z.string()).optional().describe("Key technical focus areas, e.g. Distributed Systems, TypeScript, API Design"),
   tailoredBullets: z.array(z.string()).describe("Impact-focused resume bullet points with metrics"),
   executiveSummary: z.string().describe("Tailored 2-3 sentence executive summary"),
 });
 
 export const TriggerBatchWorkflowSchema = z.object({
-  jobTitle: z.string().describe("Target job title, e.g. 'Software Engineer – Edge Platform & DevEx'"),
-  company: z.string().describe("Hiring company name, e.g. 'Cloudflare'"),
+  jobTitle: z.string().describe("Target job title, e.g. 'Staff Software Engineer'"),
+  company: z.string().describe("Hiring company name, e.g. 'Acme Corp'"),
   jobDescription: z.string().optional().describe("Job description"),
 });
 

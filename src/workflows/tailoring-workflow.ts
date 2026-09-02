@@ -1,6 +1,11 @@
 import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from "cloudflare:workers";
 import type { Ai } from "@cloudflare/workers-types";
-import { computeCompositeFitScore, deriveRecommendation, makeId } from "../lib/scoring";
+import {
+  computeCompositeFitScore,
+  deriveRecommendation,
+  evaluateCandidateJobFit,
+  makeId,
+} from "../lib/scoring";
 import { DEFAULT_CANDIDATE_PROFILE, CandidateProfile } from "../lib/candidate";
 
 export interface TailoringWorkflowParams {
@@ -8,6 +13,7 @@ export interface TailoringWorkflowParams {
   jobTitle: string;
   company: string;
   jobDescription: string;
+  candidate?: CandidateProfile;
 }
 
 export interface TailoringWorkflowResult {
@@ -62,7 +68,10 @@ export function buildSynthesisPrompt(
   job: JobContext,
   fitResult: FitResult
 ): string {
-  return `You are an expert technical career advisor and principal systems engineer specializing in cloud platforms, distributed systems, and the Cloudflare ecosystem.
+  const companyName = job.company ? job.company.trim() : "Target Company";
+  const roleTitle = job.title ? job.title.trim() : "Software Engineer";
+
+  return `You are an expert technical career advisor and principal systems engineer.
 
 Synthesize customized resume bullet points and STAR interview talking points tailored to the target job description and candidate fit profile.
 
@@ -74,8 +83,8 @@ CANDIDATE CONTEXT:
 - Resume Summary: ${candidate.resumeSummary}
 
 TARGET ROLE CONTEXT:
-- Title: ${job.title || "Software Engineer"}
-- Company: ${job.company || "Target Company"}
+- Title: ${roleTitle}
+- Company: ${companyName}
 - Job Description:
 ${job.description || "N/A"}
 
@@ -87,8 +96,8 @@ FIT EVALUATION BREAKDOWN:
 - Trajectory Fit: ${fitResult.subDimensions.trajectoryFit}/100
 
 INSTRUCTIONS:
-1. Generate at least 3 high-impact, quantified resume bullet points highlighting candidate strengths, distributed systems / edge computing expertise, and Cloudflare primitives (Workers, Durable Objects, Workflows, Pages, TypeScript, DO SQLite, Workers AI) relevant to ${job.company || "the company"} and this ${job.title} role.
-2. Generate at least 3 concrete STAR-method interview talking points or system design focus tips specifically customized for ${job.company || "the target company"} and this position.
+1. Generate at least 3 high-impact, quantified resume bullet points highlighting candidate strengths, domain expertise, and relevant technologies aligned with ${companyName} and this ${roleTitle} position.
+2. Generate at least 3 concrete STAR-method interview talking points or system design focus tips specifically customized for ${companyName} and this position.
 3. Return output strictly in JSON format matching this schema:
 {
   "tailoredBullets": [
@@ -184,19 +193,19 @@ export function getFallbackSynthesis(
   job: JobContext,
   fitScore?: number
 ): SynthesisOutput {
-  const companyName = job.company ? job.company.trim() : "Cloudflare";
-  const roleName = job.title ? job.title.trim() : "Software Engineer";
+  const companyName = job.company && job.company.trim() ? job.company.trim() : "Target Company";
+  const roleName = job.title && job.title.trim() ? job.title.trim() : "Software Engineer";
 
   const tailoredBullets = [
-    `Architected high-throughput, low-latency distributed agent systems using TypeScript, Cloudflare Workers, Durable Objects (DO SQLite), and Workers AI.`,
-    `Designed and deployed resilient async pipelines with Cloudflare Workflows coordinating multi-step job analysis and AI candidate tailoring for ${companyName}.`,
-    `Engineered modern developer tooling and streaming telemetry interfaces leveraging React, WebSockets, and Edge APIs.`,
+    `Architected high-throughput, low-latency distributed systems and services aligning with ${companyName} requirements and technical standards.`,
+    `Designed and deployed resilient async pipelines and workflows coordinating multi-step processing and data integration for ${companyName}.`,
+    `Engineered modern developer tooling and streaming telemetry interfaces delivering measurable performance gains for ${roleName} duties.`,
   ];
 
   const interviewTips = [
-    `Highlight architectural experience building stateful edge workflows with Cloudflare Workers, Durable Objects, and Workers AI for ${roleName} roles.`,
-    `Emphasize understanding of distributed state management, low-latency LLM streaming, and developer productivity tooling.`,
-    `Prepare STAR-method examples discussing edge computing optimizations and platform engineering achievements at ${companyName}.`,
+    `Highlight architectural experience building robust, scalable systems and services relevant to ${roleName} roles at ${companyName}.`,
+    `Emphasize understanding of distributed state management, asynchronous pipeline execution, and high-reliability platform design.`,
+    `Prepare STAR-method examples detailing engineering achievements, problem-solving, and cross-functional collaboration at ${companyName}.`,
   ];
 
   return { tailoredBullets, interviewTips };
@@ -221,7 +230,7 @@ export async function generateTailoringSynthesis(
             {
               role: "system",
               content:
-                "You are an expert technical career advisor and principal systems engineer specializing in cloud platforms, edge computing, and Cloudflare ecosystem engineering. Always respond strictly in valid JSON with keys 'tailoredBullets' (array of 3+ strings) and 'interviewTips' (array of 3+ strings).",
+                "You are an expert technical career advisor and principal systems engineer. Always respond strictly in valid JSON with keys 'tailoredBullets' (array of 3+ strings) and 'interviewTips' (array of 3+ strings).",
             },
             {
               role: "user",
@@ -253,6 +262,7 @@ export async function generateTailoringSynthesis(
 export class TailoringWorkflow extends WorkflowEntrypoint<Env, TailoringWorkflowParams> {
   async run(event: WorkflowEvent<TailoringWorkflowParams>, step: WorkflowStep) {
     const params = event.payload;
+    const candidate = params.candidate || DEFAULT_CANDIDATE_PROFILE;
 
     // Normalize and sanitize incoming job parameters
     const normalizedJob = await step.do("normalize-job", async () => {
@@ -266,91 +276,16 @@ export class TailoringWorkflow extends WorkflowEntrypoint<Env, TailoringWorkflow
 
     // Compute multi-dimensional fit scores across skills, experience, domain, and trajectory
     const fitResult = await step.do("compute-fit-score", async () => {
-      const descLower = normalizedJob.description.toLowerCase();
-      const titleLower = normalizedJob.title.toLowerCase();
-
-      // Skills analysis: count matching candidate skills in description
-      let skillsMatches = 0;
-      for (const skill of DEFAULT_CANDIDATE_PROFILE.skills) {
-        if (descLower.includes(skill.toLowerCase())) {
-          skillsMatches++;
-        }
-      }
-      // Proportional score: 0 to 100 based on relevant skill coverage (4+ matches gives 90+)
-      const skillsFit = Math.min(100, Math.max(20, Math.round((skillsMatches / 5) * 100)));
-
-      // Experience heuristics calibrated for candidate's 3 YOE
-      let experienceFit = 95; // Default mid-level fit (ideal match for 3 YOE)
-      if (
-        titleLower.includes("principal") ||
-        descLower.includes("principal engineer") ||
-        descLower.includes("8+ years") ||
-        descLower.includes("10+ years")
-      ) {
-        experienceFit = 55;
-      } else if (
-        titleLower.includes("staff") ||
-        descLower.includes("staff engineer") ||
-        descLower.includes("6+ years") ||
-        descLower.includes("5+ years")
-      ) {
-        experienceFit = 70;
-      } else if (
-        titleLower.includes("senior") ||
-        descLower.includes("4+ years") ||
-        descLower.includes("5 years")
-      ) {
-        experienceFit = 85;
-      } else if (
-        titleLower.includes("junior") ||
-        titleLower.includes("entry") ||
-        descLower.includes("1-2 years") ||
-        descLower.includes("0-2 years")
-      ) {
-        experienceFit = 90;
-      }
-
-      // Domain heuristics
-      const hasCloudflare = descLower.includes("cloudflare") || titleLower.includes("cloudflare");
-      const hasEdgeDistributed =
-        descLower.includes("edge") ||
-        descLower.includes("distributed") ||
-        descLower.includes("serverless") ||
-        descLower.includes("worker") ||
-        descLower.includes("durable object");
-      const hasPlatformProductivity =
-        descLower.includes("platform") ||
-        descLower.includes("productivity") ||
-        descLower.includes("developer experience") ||
-        descLower.includes("tooling");
-
-      let domainFit = 70;
-      if (hasCloudflare && (hasEdgeDistributed || hasPlatformProductivity)) {
-        domainFit = 98;
-      } else if (hasEdgeDistributed && hasPlatformProductivity) {
-        domainFit = 92;
-      } else if (hasEdgeDistributed || hasPlatformProductivity || hasCloudflare) {
-        domainFit = 85;
-      }
-
-      // Trajectory alignment with Target Role
-      const targetRoleWords = DEFAULT_CANDIDATE_PROFILE.targetRole.toLowerCase().split(/\s+/);
-      const matchingTargetWords = targetRoleWords.filter(
-        (word) => word.length > 3 && (titleLower.includes(word) || descLower.includes(word))
-      );
-      const trajectoryFit = matchingTargetWords.length >= 2 ? 95 : 80;
-
-      const score = computeCompositeFitScore({
-        skillsFit,
-        experienceFit,
-        domainFit,
-        trajectoryFit,
+      const evaluation = evaluateCandidateJobFit(candidate, {
+        title: normalizedJob.title,
+        company: normalizedJob.company,
+        rawDescription: normalizedJob.description,
       });
 
       return {
-        score,
-        recommendation: deriveRecommendation(score),
-        subDimensions: { skillsFit, experienceFit, domainFit, trajectoryFit },
+        score: evaluation.score,
+        recommendation: evaluation.recommendation,
+        subDimensions: evaluation.subDimensions,
       };
     });
 
@@ -358,7 +293,7 @@ export class TailoringWorkflow extends WorkflowEntrypoint<Env, TailoringWorkflow
     const synthesis = await step.do("generate-tailoring-synthesis", async () => {
       const synthesisOutput = await generateTailoringSynthesis(
         this.env?.AI,
-        DEFAULT_CANDIDATE_PROFILE,
+        candidate,
         normalizedJob,
         fitResult
       );

@@ -117,19 +117,25 @@ Hope this helps!
   });
 
   describe("getFallbackSynthesis", () => {
-    it("returns at least 3 tailored bullets and at least 3 interview tips customized to job", () => {
-      const fallback = getFallbackSynthesis(mockJob, 88);
+    it("returns at least 3 tailored bullets and at least 3 interview tips customized to dynamic job", () => {
+      const dynamicJob = {
+        title: "Senior Backend Engineer",
+        company: "Stripe",
+        description: "Scale payment APIs and ledger databases.",
+      };
+      const fallback = getFallbackSynthesis(dynamicJob, 88);
 
       expect(fallback.tailoredBullets.length).toBeGreaterThanOrEqual(3);
       expect(fallback.interviewTips.length).toBeGreaterThanOrEqual(3);
-      expect(fallback.tailoredBullets.some((b) => b.includes("Cloudflare"))).toBe(true);
-      expect(fallback.interviewTips.some((t) => t.includes("Cloudflare"))).toBe(true);
+      expect(fallback.tailoredBullets.some((b) => b.includes("Stripe"))).toBe(true);
+      expect(fallback.interviewTips.some((t) => t.includes("Stripe"))).toBe(true);
     });
 
-    it("handles missing job company or title gracefully", () => {
+    it("handles missing job company or title gracefully with sensible defaults", () => {
       const fallback = getFallbackSynthesis({ title: "", company: "", description: "" });
       expect(fallback.tailoredBullets.length).toBeGreaterThanOrEqual(3);
       expect(fallback.interviewTips.length).toBeGreaterThanOrEqual(3);
+      expect(fallback.tailoredBullets.some((b) => b.includes("Target Company"))).toBe(true);
     });
   });
 
@@ -201,19 +207,19 @@ Hope this helps!
   });
 
   describe("TailoringWorkflow Execution", () => {
-    it("runs complete workflow and returns properly formatted TailoringWorkflowResult", async () => {
+    it("runs complete workflow for dynamic job and returns properly formatted TailoringWorkflowResult", async () => {
       const mockAi = {
         run: vi.fn().mockResolvedValue({
           response: JSON.stringify({
             tailoredBullets: [
-              "Engineered distributed agents with Cloudflare Workers.",
-              "Implemented multi-step pipelines with Cloudflare Workflows.",
-              "Built developer tooling and real-time streaming interfaces.",
+              "Engineered distributed payment services with Go and PostgreSQL at Stripe.",
+              "Implemented multi-step settlement pipelines handling 10k TPS.",
+              "Built developer tooling and real-time ledger verification dashboards.",
             ],
             interviewTips: [
-              "Detail edge computing patterns and Durable Objects.",
-              "Explain stateful agent coordination and SQLite persistence.",
-              "Discuss high-throughput developer platforms.",
+              "Detail transaction isolation levels and distributed consensus.",
+              "Explain stateful agent coordination and database sharding.",
+              "Discuss high-throughput payment infrastructure resilience.",
             ],
           }),
         }),
@@ -230,10 +236,10 @@ Hope this helps!
 
       const event = {
         payload: {
-          jobId: "job-test-123",
-          jobTitle: "Software Engineer – Edge Platform & DevEx",
-          company: "Cloudflare",
-          jobDescription: "Looking for a Software Engineer to work on Cloudflare Platforms, Workers, and Developer Productivity.",
+          jobId: "job-stripe-123",
+          jobTitle: "Senior Backend Engineer",
+          company: "Stripe",
+          jobDescription: "Looking for a Senior Backend Engineer to work on payment infrastructure, ledger pipelines, and distributed databases.",
         },
       };
 
@@ -243,7 +249,7 @@ Hope this helps!
       expect(mockStep.do).toHaveBeenCalledWith("compute-fit-score", expect.any(Function));
       expect(mockStep.do).toHaveBeenCalledWith("generate-tailoring-synthesis", expect.any(Function));
 
-      expect(result.jobId).toBe("job-test-123");
+      expect(result.jobId).toBe("job-stripe-123");
       expect(result.fitScore).toBeGreaterThanOrEqual(0);
       expect(result.fitScore).toBeLessThanOrEqual(100);
       expect(["Strong Fit", "Potential Fit", "Low Fit"]).toContain(result.recommendation);
