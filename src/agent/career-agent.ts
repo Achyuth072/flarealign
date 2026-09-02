@@ -1,7 +1,6 @@
 import { AIChatAgent } from "@cloudflare/ai-chat";
 import { createWorkersAI } from "workers-ai-provider";
-import { streamText, tool, isStepCount, convertToModelMessages } from "ai";
-import { z } from "zod";
+import { streamText, tool, isStepCount, convertToModelMessages, NoSuchToolError } from "ai";
 import { computeCompositeFitScore, deriveRecommendation, makeId } from "../lib/scoring";
 import {
   DEFAULT_CANDIDATE_PROFILE,
@@ -11,7 +10,13 @@ import {
 } from "../lib/candidate";
 import { getSystemPrompt } from "../lib/prompts";
 import { InterviewPrepSchema } from "../lib/interview";
-import { initSqliteSchema, seedCandidateIfMissing } from "../lib/schema";
+import { seedCandidateIfMissing } from "../lib/schema";
+import { repairStringifiedContainers } from "../lib/repair-tool-input";
+import {
+  ScoreJobFitSchema,
+  TailorResumeSchema,
+  TriggerBatchWorkflowSchema,
+} from "../lib/tool-schemas";
 
 export interface CareerAgentState {
   candidateId: string;
@@ -187,18 +192,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     const tools = {
       scoreJobFit: tool({
         description: "Analyze candidate fit for a job posting across skills, experience, domain, and trajectory.",
-        inputSchema: z.object({
-          jobTitle: z.string().default("Software Engineer – Edge Platform & DevEx").describe("Target job title"),
-          company: z.string().default("Cloudflare").describe("Hiring company name"),
-          jobDescription: z.string().optional().default("Cloudflare Edge Platform & DevEx software engineering role.").describe("Full job description text"),
-          skillsFit: z.coerce.number().min(0).max(100).default(85).describe("Estimated skills alignment score (0-100)"),
-          experienceFit: z.coerce.number().min(0).max(100).default(80).describe("Estimated experience depth score (0-100)"),
-          domainFit: z.coerce.number().min(0).max(100).default(85).describe("Estimated domain knowledge score (0-100)"),
-          trajectoryFit: z.coerce.number().min(0).max(100).default(80).describe("Estimated career trajectory score (0-100)"),
-          strengths: z.array(z.string()).default([]).describe("Key candidate strengths for this role"),
-          gaps: z.array(z.string()).default([]).describe("Identified gaps or missing keywords"),
-          reasoning: z.string().default("Candidate demonstrates strong edge platform and TypeScript capabilities.").describe("Summary of evaluation reasoning"),
-        }),
+        inputSchema: ScoreJobFitSchema,
         execute: async (args) => {
           try {
             const subDimensions = {
@@ -274,13 +268,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
 
       tailorResume: tool({
         description: "Generate tailored resume bullet points and summary aligned with Cloudflare or target job requirements.",
-        inputSchema: z.object({
-          jobTitle: z.string().default("Software Engineer – Edge Platform & DevEx").describe("Target job title"),
-          company: z.string().default("Cloudflare").describe("Hiring company name"),
-          focusAreas: z.array(z.string()).optional().default(["Workers", "Durable Objects", "Workflows", "TypeScript"]).describe("Key technical focus areas"),
-          tailoredBullets: z.array(z.string()).default([]).describe("Impact-focused resume bullet points with metrics"),
-          executiveSummary: z.string().default("").describe("Tailored 2-3 sentence executive summary"),
-        }),
+        inputSchema: TailorResumeSchema,
         execute: async (args) => {
           console.log("[CareerAgent] Executing tailorResume:", { jobTitle: args.jobTitle, company: args.company });
           try {
@@ -342,11 +330,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
 
       triggerBatchWorkflow: tool({
         description: "Trigger an asynchronous Cloudflare Workflow pipeline for batch job ingestion and background tailoring.",
-        inputSchema: z.object({
-          jobTitle: z.string().default("Software Engineer – Edge Platform & DevEx").describe("Target job title"),
-          company: z.string().default("Cloudflare").describe("Hiring company name"),
-          jobDescription: z.string().optional().default("Cloudflare edge platform and developer tooling role").describe("Job description"),
-        }),
+        inputSchema: TriggerBatchWorkflowSchema,
         execute: async (args) => {
           try {
             const workflowJobId = makeId("wf-job");
@@ -411,8 +395,21 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
       tools,
       stopWhen: isStepCount(5),
       abortSignal: options?.abortSignal,
+      repairToolCall: async ({ toolCall, error }) => {
+        if (NoSuchToolError.isInstance(error)) {
+          return null;
+        }
+        const input = repairStringifiedContainers(toolCall.input);
+        if (input === null) {
+          return null;
+        }
+        console.warn("[CareerAgent] Repaired stringified tool input for", toolCall.toolName);
+        return { ...toolCall, input };
+      },
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({
+      onError: (error) => (error instanceof Error ? error.message : String(error)),
+    });
   }
 }
