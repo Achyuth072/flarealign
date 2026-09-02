@@ -27,20 +27,65 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
   };
 
   private initDatabase(): void {
-    initSqliteSchema((statement) => {
-      this.sql([statement] as unknown as TemplateStringsArray);
-    });
+    try {
+      this.sql`
+        CREATE TABLE IF NOT EXISTS candidates (
+          id TEXT PRIMARY KEY NOT NULL,
+          name TEXT NOT NULL,
+          data TEXT NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      `;
+      this.sql`
+        CREATE TABLE IF NOT EXISTS jobs (
+          id TEXT PRIMARY KEY NOT NULL,
+          title TEXT NOT NULL,
+          company TEXT NOT NULL,
+          description TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        )
+      `;
+      this.sql`
+        CREATE TABLE IF NOT EXISTS fit_scores (
+          id TEXT PRIMARY KEY NOT NULL,
+          job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+          score INTEGER NOT NULL,
+          recommendation TEXT NOT NULL,
+          breakdown TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        )
+      `;
+      this.sql`
+        CREATE TABLE IF NOT EXISTS applications (
+          id TEXT PRIMARY KEY NOT NULL,
+          job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+          tailored_resume TEXT NOT NULL,
+          interview_prep TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        )
+      `;
+    } catch (err) {
+      console.warn("Schema initialization notice:", err);
+    }
 
     seedCandidateIfMissing(
       (candidateId) => {
-        const rows = this.sql`SELECT id FROM candidates WHERE id = ${candidateId}`;
-        return !!rows && rows.length > 0;
+        try {
+          const rows = this.sql`SELECT id FROM candidates WHERE id = ${candidateId}`;
+          return !!rows && rows.length > 0;
+        } catch {
+          return false;
+        }
       },
       (row) => {
-        this.sql`
-          INSERT INTO candidates (id, name, data, updated_at)
-          VALUES (${row.id}, ${row.name}, ${row.data}, ${row.updated_at})
-        `;
+        try {
+          this.sql`
+            INSERT OR REPLACE INTO candidates (id, name, data, updated_at)
+            VALUES (${row.id}, ${row.name}, ${row.data}, ${row.updated_at})
+          `;
+        } catch (err) {
+          console.warn("Failed to seed candidate:", err);
+        }
       },
       DEFAULT_CANDIDATE_PROFILE
     );
