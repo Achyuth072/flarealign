@@ -17,6 +17,29 @@ import { formatAgentSessionName, formatUserActorName } from "./lib/session";
 
 export { CareerAgent, TailoringWorkflow };
 
+export function resolveSessionActor(
+  url: URL,
+  request: Request,
+  defaultActor: string = "candidate-session"
+): string {
+  const rawSession =
+    url.searchParams.get("session") ||
+    url.searchParams.get("agentSessionName");
+  const rawUserId = url.searchParams.get("userId") || request.headers.get("x-user-id");
+  const rawSessionId = url.searchParams.get("sessionId") || request.headers.get("x-session-id");
+
+  if (rawSession && rawSession.startsWith("session__")) {
+    return rawSession;
+  }
+  if (rawUserId && rawSessionId) {
+    return formatAgentSessionName(rawUserId, rawSessionId);
+  }
+  if (rawUserId) {
+    return formatUserActorName(rawUserId);
+  }
+  return rawSession || defaultActor;
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -99,22 +122,7 @@ export default {
 
     // 3. Job Posting endpoint (GET and POST/PUT for persistence)
     if (url.pathname === "/api/job") {
-      const rawSession =
-        url.searchParams.get("session") ||
-        url.searchParams.get("agentSessionName");
-      const rawUserId = url.searchParams.get("userId") || request.headers.get("x-user-id");
-      const rawSessionId = url.searchParams.get("sessionId") || request.headers.get("x-session-id");
-
-      let actorName: string;
-      if (rawSession && rawSession.startsWith("session__")) {
-        actorName = rawSession;
-      } else if (rawUserId && rawSessionId) {
-        actorName = formatAgentSessionName(rawUserId, rawSessionId);
-      } else if (rawUserId) {
-        actorName = formatUserActorName(rawUserId);
-      } else {
-        actorName = rawSession || "candidate-session";
-      }
+      const actorName = resolveSessionActor(url, request);
 
       if (request.method === "POST" || request.method === "PUT") {
         try {

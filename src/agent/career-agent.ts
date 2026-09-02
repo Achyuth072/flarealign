@@ -131,29 +131,60 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
   }
 
   private ensureActiveJobId(jobTitle: string, company: string, description: string = ""): string {
-    let activeJobId = this.state?.activeJobId;
+    const trimmedTitle = (jobTitle || "").trim();
+    const trimmedCompany = (company || "").trim();
 
-    if (!activeJobId) {
-      activeJobId = makeId("job");
-      this.setState({
-        ...this.state,
-        activeJobId,
-      });
+    if (this.state?.activeJobId) {
+      try {
+        const rows = this.sql`SELECT * FROM jobs WHERE id = ${this.state.activeJobId}`;
+        if (rows && rows.length > 0) {
+          const current = rowToJobPosting(rows[0] as unknown as JobRow);
+          if (
+            (!trimmedTitle || current.title.toLowerCase() === trimmedTitle.toLowerCase()) &&
+            (!trimmedCompany || current.company.toLowerCase() === trimmedCompany.toLowerCase())
+          ) {
+            return current.id;
+          }
+        }
+      } catch (err) {
+        console.warn("Error checking active job in ensureActiveJobId:", err);
+      }
     }
 
-    const now = Date.now();
-    // Ensure parent job record exists for foreign key constraints
+    // Save and normalize as new active job, invalidating stale downstream records
+    const job = normalizeJobPosting({
+      title: trimmedTitle || "Software Engineer",
+      company: trimmedCompany || "Target Company",
+      rawDescription: description,
+    });
+    const row = jobPostingToRow(job);
+
+    try {
+      this.sql`DELETE FROM jobs WHERE id != ${row.id}`;
+      this.sql`DELETE FROM fit_scores`;
+      this.sql`DELETE FROM applications`;
+    } catch (err) {
+      console.warn("Failed to clear stale records on job update:", err);
+    }
+
     this.sql`
-      INSERT OR IGNORE INTO jobs (
+      INSERT OR REPLACE INTO jobs (
         id, title, company, location, required_skills, preferred_skills,
         responsibilities, experience_level, raw_description, created_at, updated_at
-      )
-      VALUES (
-        ${activeJobId}, ${jobTitle}, ${company}, 'Remote', '[]', '[]', '[]', 'Mid-Senior Level', ${description}, ${now}, ${now}
+      ) VALUES (
+        ${row.id}, ${row.title}, ${row.company}, ${row.location},
+        ${row.required_skills}, ${row.preferred_skills}, ${row.responsibilities},
+        ${row.experience_level}, ${row.raw_description}, ${row.created_at}, ${row.updated_at}
       )
     `;
 
-    return activeJobId;
+    this.setState({
+      ...this.state,
+      activeJobId: job.id,
+      lastScore: undefined,
+    });
+
+    return job.id;
   }
 
   async getActiveJob(): Promise<JobPosting | null> {
@@ -436,7 +467,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
       }),
 
       tailorResume: tool({
-        description: "Generate tailored resume bullet points and summary aligned with Cloudflare or target job requirements.",
+        description: "Generate tailored resume bullet points and summary aligned with target job requirements.",
         inputSchema: TailorResumeSchema,
         execute: async (args) => {
           console.log("[CareerAgent] Executing tailorResume:", { jobTitle: args.jobTitle, company: args.company });

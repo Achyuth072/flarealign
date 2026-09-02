@@ -91,6 +91,26 @@ INSTRUCTIONS:
 }`;
 }
 
+function sanitizeStringArray(input: unknown): string[] | undefined {
+  if (!Array.isArray(input)) return undefined;
+  const cleaned = input
+    .filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
+    .map((s: string) => s.trim());
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
+function extractFieldsFromObject(obj: Record<string, unknown>): Partial<JobPostingInput> {
+  return {
+    title: typeof obj.title === "string" ? obj.title.trim() : undefined,
+    company: typeof obj.company === "string" ? obj.company.trim() : undefined,
+    location: typeof obj.location === "string" ? obj.location.trim() : undefined,
+    requiredSkills: sanitizeStringArray(obj.requiredSkills),
+    preferredSkills: sanitizeStringArray(obj.preferredSkills),
+    responsibilities: sanitizeStringArray(obj.responsibilities),
+    experienceLevel: typeof obj.experienceLevel === "string" ? obj.experienceLevel.trim() : undefined,
+  };
+}
+
 /**
  * Parses and validates the structured extraction JSON output from Workers AI.
  */
@@ -101,27 +121,7 @@ export function parseJobExtractionResponse(rawContent: unknown): Partial<JobPost
   if (typeof rawContent === "object") {
     const obj = rawContent as Record<string, unknown>;
     if (typeof obj.title === "string" || typeof obj.company === "string") {
-      return {
-        title: typeof obj.title === "string" ? obj.title.trim() : undefined,
-        company: typeof obj.company === "string" ? obj.company.trim() : undefined,
-        location: typeof obj.location === "string" ? obj.location.trim() : undefined,
-        requiredSkills: Array.isArray(obj.requiredSkills)
-          ? obj.requiredSkills
-              .filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
-              .map((s: string) => s.trim())
-          : undefined,
-        preferredSkills: Array.isArray(obj.preferredSkills)
-          ? obj.preferredSkills
-              .filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
-              .map((s: string) => s.trim())
-          : undefined,
-        responsibilities: Array.isArray(obj.responsibilities)
-          ? obj.responsibilities
-              .filter((r: unknown): r is string => typeof r === "string" && r.trim().length > 0)
-              .map((r: string) => r.trim())
-          : undefined,
-        experienceLevel: typeof obj.experienceLevel === "string" ? obj.experienceLevel.trim() : undefined,
-      };
+      return extractFieldsFromObject(obj);
     }
     text = JSON.stringify(rawContent);
   } else if (typeof rawContent === "string") {
@@ -146,27 +146,7 @@ export function parseJobExtractionResponse(rawContent: unknown): Partial<JobPost
   try {
     const parsed = JSON.parse(text);
     if (typeof parsed === "object" && parsed !== null) {
-      return {
-        title: typeof parsed.title === "string" ? parsed.title.trim() : undefined,
-        company: typeof parsed.company === "string" ? parsed.company.trim() : undefined,
-        location: typeof parsed.location === "string" ? parsed.location.trim() : undefined,
-        requiredSkills: Array.isArray(parsed.requiredSkills)
-          ? parsed.requiredSkills
-              .filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
-              .map((s: string) => s.trim())
-          : undefined,
-        preferredSkills: Array.isArray(parsed.preferredSkills)
-          ? parsed.preferredSkills
-              .filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
-              .map((s: string) => s.trim())
-          : undefined,
-        responsibilities: Array.isArray(parsed.responsibilities)
-          ? parsed.responsibilities
-              .filter((r: unknown): r is string => typeof r === "string" && r.trim().length > 0)
-              .map((r: string) => r.trim())
-          : undefined,
-        experienceLevel: typeof parsed.experienceLevel === "string" ? parsed.experienceLevel.trim() : undefined,
-      };
+      return extractFieldsFromObject(parsed as Record<string, unknown>);
     }
   } catch (err) {
     console.warn("Failed to parse JSON response from job extraction:", err);

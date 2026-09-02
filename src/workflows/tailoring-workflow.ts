@@ -7,6 +7,7 @@ import {
   makeId,
 } from "../lib/scoring";
 import { DEFAULT_CANDIDATE_PROFILE, CandidateProfile } from "../lib/candidate";
+import { normalizeJobPosting } from "../lib/job";
 
 export interface TailoringWorkflowParams {
   jobId?: string;
@@ -41,6 +42,10 @@ export interface NormalizedJob {
   title: string;
   company: string;
   description: string;
+  requiredSkills?: string[];
+  preferredSkills?: string[];
+  responsibilities?: string[];
+  experienceLevel?: string;
 }
 
 export interface FitResult {
@@ -266,11 +271,21 @@ export class TailoringWorkflow extends WorkflowEntrypoint<Env, TailoringWorkflow
 
     // Normalize and sanitize incoming job parameters
     const normalizedJob = await step.do("normalize-job", async () => {
+      const normalized = normalizeJobPosting({
+        id: params.jobId,
+        title: params.jobTitle,
+        company: params.company,
+        rawDescription: params.jobDescription,
+      });
       return {
-        jobId: params.jobId || makeId("job"),
-        title: params.jobTitle.trim(),
-        company: params.company.trim(),
-        description: params.jobDescription.trim(),
+        jobId: normalized.id,
+        title: normalized.title,
+        company: normalized.company,
+        description: normalized.rawDescription,
+        requiredSkills: normalized.requiredSkills,
+        preferredSkills: normalized.preferredSkills,
+        responsibilities: normalized.responsibilities,
+        experienceLevel: normalized.experienceLevel,
       };
     });
 
@@ -280,6 +295,10 @@ export class TailoringWorkflow extends WorkflowEntrypoint<Env, TailoringWorkflow
         title: normalizedJob.title,
         company: normalizedJob.company,
         rawDescription: normalizedJob.description,
+        requiredSkills: normalizedJob.requiredSkills,
+        preferredSkills: normalizedJob.preferredSkills,
+        responsibilities: normalizedJob.responsibilities,
+        experienceLevel: normalizedJob.experienceLevel,
       });
 
       return {

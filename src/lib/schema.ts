@@ -111,48 +111,27 @@ export function jobPostingToRow(job: JobPosting): JobRow {
   };
 }
 
+function safeJsonArray(raw?: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export function rowToJobPosting(
   row: JobRow | (Partial<JobRow> & { id: string; title: string; company: string; created_at: number; description?: string })
 ): JobPosting {
-  let requiredSkills: string[] = [];
-  let preferredSkills: string[] = [];
-  let responsibilities: string[] = [];
-
-  if (row.required_skills) {
-    try {
-      const parsed = JSON.parse(row.required_skills);
-      if (Array.isArray(parsed)) requiredSkills = parsed;
-    } catch {
-      requiredSkills = [];
-    }
-  }
-
-  if (row.preferred_skills) {
-    try {
-      const parsed = JSON.parse(row.preferred_skills);
-      if (Array.isArray(parsed)) preferredSkills = parsed;
-    } catch {
-      preferredSkills = [];
-    }
-  }
-
-  if (row.responsibilities) {
-    try {
-      const parsed = JSON.parse(row.responsibilities);
-      if (Array.isArray(parsed)) responsibilities = parsed;
-    } catch {
-      responsibilities = [];
-    }
-  }
-
   return {
     id: row.id,
     title: row.title,
     company: row.company,
     location: row.location ?? "Remote",
-    requiredSkills,
-    preferredSkills,
-    responsibilities,
+    requiredSkills: safeJsonArray(row.required_skills),
+    preferredSkills: safeJsonArray(row.preferred_skills),
+    responsibilities: safeJsonArray(row.responsibilities),
     experienceLevel: row.experience_level ?? "Mid-Senior Level",
     rawDescription: row.raw_description ?? (row as { description?: string }).description ?? "",
     createdAt: row.created_at,
