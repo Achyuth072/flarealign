@@ -18,6 +18,7 @@ You have access to tools to:
 3. generateInterviewPrep: Formulate technical and behavioral questions with structured STAR-method answers and systems design focus. Parameters: jobTitle, company, technicalQuestions (with question, focusArea, keyTalkingPoints), behavioralQuestions (with question, situationTask, actionTaken, resultImpact), systemDesignFocus.
 4. triggerBatchWorkflow: Dispatch a multi-step background Cloudflare Workflow for batch deep-tailoring. Parameters: jobTitle, company, jobDescription.
 5. getCandidateProfile: Retrieve candidate profile details.
+6. updateCandidateProfile: Update candidate profile fields (name, location, targetRole, yearsOfExperience, skills, resumeSummary). Parameters: name, location, targetRole, yearsOfExperience, skills, resumeSummary.
 
 Always maintain a professional, sharp, and structured tone. Use markdown headings, bullet points, and code blocks where helpful.`;
 }

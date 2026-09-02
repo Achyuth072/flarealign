@@ -18,6 +18,10 @@ import {
   Award,
   Code2,
   Target,
+  Edit3,
+  X,
+  Save,
+  UserCheck,
 } from "lucide-react";
 import type { CandidateProfile } from "../lib/candidate";
 import type { InterviewPrep, BehavioralQuestion, TechnicalQuestion } from "../lib/interview";
@@ -286,6 +290,244 @@ function TailorResumeResultView({ data }: { data: TailorResumeData }) {
   );
 }
 
+function UpdateCandidateProfileResultView({ data }: { data: any }) {
+  const candidate = data.candidate || data.updatedCandidate;
+  return (
+    <div className="mt-3 space-y-2 rounded-xl bg-[#11131A] border border-[#2B2E3C] p-3 text-xs text-slate-200 shadow-lg">
+      <div className="flex items-center justify-between pb-2 border-b border-[#222530]">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+          </div>
+          <h4 className="font-semibold text-white text-xs">Profile Updated</h4>
+        </div>
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono">
+          Persistent SQLite
+        </span>
+      </div>
+      <p className="text-[11px] text-slate-300">{data.message || "Candidate profile updated successfully."}</p>
+      {candidate && (
+        <div className="p-2 rounded bg-[#161822] border border-[#242735] text-[11px] space-y-1">
+          <div className="text-slate-200 font-medium">
+            {candidate.name} • {candidate.yearsOfExperience}y Exp • {candidate.location}
+          </div>
+          {candidate.targetRole && (
+            <div className="text-slate-400 text-[10px] line-clamp-1">Role: {candidate.targetRole}</div>
+          )}
+          {candidate.skills && (
+            <div className="text-slate-400 text-[10px] line-clamp-1">
+              Skills: {candidate.skills.join(", ")}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface EditProfileModalProps {
+  candidate: CandidateProfile;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (updated: CandidateProfile) => void;
+}
+
+function EditProfileModal({ candidate, isOpen, onClose, onSave }: EditProfileModalProps) {
+  const [formData, setFormData] = useState({
+    name: candidate.name,
+    location: candidate.location,
+    targetRole: candidate.targetRole,
+    yearsOfExperience: candidate.yearsOfExperience,
+    skills: candidate.skills.join(", "),
+    resumeSummary: candidate.resumeSummary,
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormData({
+      name: candidate.name,
+      location: candidate.location,
+      targetRole: candidate.targetRole,
+      yearsOfExperience: candidate.yearsOfExperience,
+      skills: candidate.skills.join(", "),
+      resumeSummary: candidate.resumeSummary,
+    });
+    setError(null);
+  }, [candidate, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setError(null);
+
+    const skillsArray = formData.skills
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const payload = {
+      name: formData.name.trim(),
+      location: formData.location.trim(),
+      targetRole: formData.targetRole.trim(),
+      yearsOfExperience: Number(formData.yearsOfExperience),
+      skills: skillsArray,
+      resumeSummary: formData.resumeSummary.trim(),
+    };
+
+    try {
+      const res = await fetch("/api/candidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json()) as ApiResponse<CandidateProfile>;
+      if (data.success && data.candidate) {
+        onSave(data.candidate);
+        onClose();
+      } else {
+        setError(data.error || "Failed to update profile");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error updating profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="w-full max-w-lg rounded-2xl bg-[#14151B] border border-[#2B2E3C] shadow-2xl p-6 text-slate-100 space-y-4 my-8">
+        <div className="flex items-center justify-between pb-3 border-b border-[#222530]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#F6821F]/20 text-[#F6821F] flex items-center justify-center">
+              <UserCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-white">Edit Candidate Profile</h3>
+              <p className="text-[11px] text-slate-400">Updates persistent SQLite actor state</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-[#222530] text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-medium text-slate-400 mb-1">Full Name</label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full bg-[#0E0F12] border border-[#262933] focus:border-[#F6821F] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium text-slate-400 mb-1">Location</label>
+              <input
+                type="text"
+                required
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="w-full bg-[#0E0F12] border border-[#262933] focus:border-[#F6821F] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <label className="block text-[11px] font-medium text-slate-400 mb-1">Target Role</label>
+              <input
+                type="text"
+                required
+                value={formData.targetRole}
+                onChange={(e) => setFormData({ ...formData, targetRole: e.target.value })}
+                className="w-full bg-[#0E0F12] border border-[#262933] focus:border-[#F6821F] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium text-slate-400 mb-1">Years Exp</label>
+              <input
+                type="number"
+                min="0"
+                max="50"
+                required
+                value={formData.yearsOfExperience}
+                onChange={(e) =>
+                  setFormData({ ...formData, yearsOfExperience: Number(e.target.value) })
+                }
+                className="w-full bg-[#0E0F12] border border-[#262933] focus:border-[#F6821F] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-slate-400 mb-1">
+              Core Skills <span className="text-[10px] text-slate-500">(comma-separated)</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.skills}
+              onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
+              className="w-full bg-[#0E0F12] border border-[#262933] focus:border-[#F6821F] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-slate-400 mb-1">
+              Executive / Resume Summary
+            </label>
+            <textarea
+              rows={3}
+              required
+              value={formData.resumeSummary}
+              onChange={(e) => setFormData({ ...formData, resumeSummary: e.target.value })}
+              className="w-full bg-[#0E0F12] border border-[#262933] focus:border-[#F6821F] rounded-lg px-3 py-2 text-xs text-white focus:outline-none resize-none"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#222530]">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-2 rounded-lg bg-[#1E202A] hover:bg-[#282B38] text-slate-300 text-xs transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-4 py-2 bg-gradient-to-r from-[#F6821F] to-[#FAAD3F] hover:from-[#E57213] hover:to-[#E59728] text-black font-semibold rounded-lg text-xs flex items-center gap-1.5 transition-all disabled:opacity-50"
+            >
+              {isSaving ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
+              <span>Save Profile</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function renderToolPart(part: ToolPartLike, pIdx: number) {
   const toolName = part.type?.startsWith("tool-")
     ? part.type.replace("tool-", "")
@@ -302,6 +544,10 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
 
   if (toolName === "tailorResume" && payload) {
     return <TailorResumeResultView key={pIdx} data={payload as TailorResumeData} />;
+  }
+
+  if (toolName === "updateCandidateProfile" && payload) {
+    return <UpdateCandidateProfileResultView key={pIdx} data={payload} />;
   }
 
   return (
@@ -324,6 +570,7 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
 
 export function App() {
   const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [inputVal, setInputVal] = useState("");
   const [isTriggeringWorkflow, setIsTriggeringWorkflow] = useState(false);
   const [workflowStatus, setWorkflowStatus] = useState<string | null>(null);
@@ -485,6 +732,16 @@ export function App() {
                     </span>
                   )}
                 </div>
+              </div>
+
+              <div className="pt-2 border-t border-[#242733]">
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="w-full py-1.5 px-2 rounded bg-[#20232D] hover:bg-[#282C3A] text-slate-200 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors border border-[#2B2E3C]"
+                >
+                  <Edit3 className="w-3 h-3 text-[#F6821F]" />
+                  Edit Candidate Details
+                </button>
               </div>
             </div>
           )}
@@ -735,6 +992,16 @@ export function App() {
           </form>
         </div>
       </main>
+
+      {/* Edit Profile Modal */}
+      {candidate && (
+        <EditProfileModal
+          candidate={candidate}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={(updated) => setCandidate(updated)}
+        />
+      )}
     </div>
   );
 }

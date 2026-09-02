@@ -3,7 +3,12 @@ import { createWorkersAI } from "workers-ai-provider";
 import { streamText, tool, ModelMessage, UIMessage } from "ai";
 import { z } from "zod";
 import { computeCompositeFitScore, deriveRecommendation, makeId } from "../lib/scoring";
-import { DEFAULT_CANDIDATE_PROFILE, CandidateProfile } from "../lib/candidate";
+import {
+  DEFAULT_CANDIDATE_PROFILE,
+  CandidateProfile,
+  CandidateUpdateSchema,
+  patchCandidateProfile,
+} from "../lib/candidate";
 import { getSystemPrompt } from "../lib/prompts";
 import { InterviewPrepSchema } from "../lib/interview";
 import { initSqliteSchema, seedCandidateIfMissing } from "../lib/schema";
@@ -292,6 +297,26 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
         inputSchema: z.object({}),
         execute: async () => {
           return candidate;
+        },
+      }),
+
+      updateCandidateProfile: tool({
+        description:
+          "Update candidate profile fields such as name, location, targetRole, yearsOfExperience, skills, or resumeSummary in persistent SQLite storage.",
+        inputSchema: CandidateUpdateSchema,
+        execute: async (patch) => {
+          const current = await this.getCandidate();
+          const updated = patchCandidateProfile(current, patch);
+          await this.updateCandidate(updated);
+          this.setState({
+            ...this.state,
+            candidateName: updated.name,
+          });
+          return {
+            success: true,
+            message: `Candidate profile for ${updated.name} updated successfully.`,
+            candidate: updated,
+          };
         },
       }),
     };

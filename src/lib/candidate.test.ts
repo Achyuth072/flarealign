@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_CANDIDATE_PROFILE, CandidateProfileSchema } from "./candidate";
+import {
+  DEFAULT_CANDIDATE_PROFILE,
+  CandidateProfileSchema,
+  CandidateUpdateSchema,
+  patchCandidateProfile,
+} from "./candidate";
 import { getSystemPrompt } from "./prompts";
 
 describe("Candidate Profile and Prompts", () => {
@@ -12,7 +17,27 @@ describe("Candidate Profile and Prompts", () => {
     expect(parsed.projects.length).toBeGreaterThan(0);
   });
 
-  it("generates structured system prompt with candidate context and all available tools", () => {
+  it("validates CandidateUpdateSchema and safely patches candidate profile", () => {
+    const patch = {
+      name: "Achyuth S",
+      yearsOfExperience: 4,
+      skills: ["TypeScript", "Cloudflare Workers", "Rust"],
+    };
+    const validatedPatch = CandidateUpdateSchema.parse(patch);
+    const patched = patchCandidateProfile(DEFAULT_CANDIDATE_PROFILE, validatedPatch);
+
+    expect(patched.name).toBe("Achyuth S");
+    expect(patched.yearsOfExperience).toBe(4);
+    expect(patched.skills).toEqual(["TypeScript", "Cloudflare Workers", "Rust"]);
+    // Preserves unpatched fields
+    expect(patched.id).toBe(DEFAULT_CANDIDATE_PROFILE.id);
+    expect(patched.location).toBe(DEFAULT_CANDIDATE_PROFILE.location);
+    expect(patched.targetRole).toBe(DEFAULT_CANDIDATE_PROFILE.targetRole);
+    expect(patched.experiences).toEqual(DEFAULT_CANDIDATE_PROFILE.experiences);
+    expect(patched.projects).toEqual(DEFAULT_CANDIDATE_PROFILE.projects);
+  });
+
+  it("generates structured system prompt with candidate context and all available tools including updateCandidateProfile", () => {
     const prompt = getSystemPrompt(DEFAULT_CANDIDATE_PROFILE);
     expect(prompt).toContain("Achyuth");
     expect(prompt).toContain("scoreJobFit");
@@ -26,7 +51,18 @@ describe("Candidate Profile and Prompts", () => {
     expect(prompt).toContain("systemDesignFocus");
     expect(prompt).toContain("triggerBatchWorkflow");
     expect(prompt).toContain("getCandidateProfile");
+    expect(prompt).toContain("updateCandidateProfile");
     expect(prompt).toContain("Cloudflare");
+  });
+
+  it("rejects invalid values in CandidateUpdateSchema", () => {
+    // Negative years of experience
+    expect(() => CandidateUpdateSchema.parse({ yearsOfExperience: -1 })).toThrow();
+    // Exceeding max years of experience
+    expect(() => CandidateUpdateSchema.parse({ yearsOfExperience: 100 })).toThrow();
+    // Empty strings where minimum 1 character is required
+    expect(() => CandidateUpdateSchema.parse({ name: "" })).toThrow();
+    expect(() => CandidateUpdateSchema.parse({ skills: [""] })).toThrow();
   });
 });
 

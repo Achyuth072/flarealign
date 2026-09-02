@@ -1,7 +1,12 @@
 import { routeAgentRequest } from "agents";
 import { CareerAgent } from "./agent/career-agent";
 import { TailoringWorkflow } from "./workflows/tailoring-workflow";
-import { DEFAULT_CANDIDATE_PROFILE } from "./lib/candidate";
+import {
+  DEFAULT_CANDIDATE_PROFILE,
+  CandidateProfile,
+  CandidateUpdateSchema,
+  patchCandidateProfile,
+} from "./lib/candidate";
 import { makeId } from "./lib/scoring";
 
 export { CareerAgent, TailoringWorkflow };
@@ -25,8 +30,58 @@ export default {
       });
     }
 
-    // 2. Candidate Profile endpoint
+    // 2. Candidate Profile endpoint (GET and POST/PUT for persistence)
     if (url.pathname === "/api/candidate") {
+      if (request.method === "POST" || request.method === "PUT") {
+        try {
+          const body = await request.json();
+          const patch = CandidateUpdateSchema.parse(body);
+          let updatedCandidate: CandidateProfile;
+
+          if (env.CareerAgent) {
+            const id = env.CareerAgent.idFromName("candidate-session");
+            const stub = env.CareerAgent.get(id);
+            const current =
+              (await (
+                stub as unknown as { getCandidate: () => Promise<CandidateProfile> }
+              ).getCandidate()) || DEFAULT_CANDIDATE_PROFILE;
+            updatedCandidate = patchCandidateProfile(current, patch);
+            await (
+              stub as unknown as { updateCandidate: (p: CandidateProfile) => Promise<void> }
+            ).updateCandidate(updatedCandidate);
+          } else {
+            updatedCandidate = patchCandidateProfile(DEFAULT_CANDIDATE_PROFILE, patch);
+          }
+
+          return Response.json({
+            success: true,
+            candidate: updatedCandidate,
+          });
+        } catch (error) {
+          return Response.json(
+            { success: false, error: error instanceof Error ? error.message : String(error) },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Default GET: Fetch current profile from Durable Object SQLite or fallback
+      try {
+        if (env.CareerAgent) {
+          const id = env.CareerAgent.idFromName("candidate-session");
+          const stub = env.CareerAgent.get(id);
+          const candidate = await (
+            stub as unknown as { getCandidate: () => Promise<CandidateProfile> }
+          ).getCandidate();
+          return Response.json({
+            success: true,
+            candidate: candidate || DEFAULT_CANDIDATE_PROFILE,
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to fetch candidate from DO stub, falling back to default:", err);
+      }
+
       return Response.json({
         success: true,
         candidate: DEFAULT_CANDIDATE_PROFILE,

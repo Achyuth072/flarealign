@@ -28,6 +28,55 @@ export const CandidateProfileSchema = z.object({
 
 export type CandidateProfile = z.infer<typeof CandidateProfileSchema>;
 
+export const CandidateUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  location: z.string().min(1).optional(),
+  targetRole: z.string().min(1).optional(),
+  yearsOfExperience: z.number().min(0).max(50).optional(),
+  skills: z.array(z.string().min(1)).optional(),
+  resumeSummary: z.string().min(1).optional(),
+  experiences: z
+    .array(
+      z.object({
+        role: z.string(),
+        company: z.string(),
+        period: z.string(),
+        highlights: z.array(z.string()),
+      })
+    )
+    .optional(),
+  projects: z
+    .array(
+      z.object({
+        name: z.string(),
+        description: z.string(),
+        techStack: z.array(z.string()),
+        highlights: z.array(z.string()),
+      })
+    )
+    .optional(),
+});
+
+export type CandidateUpdate = z.infer<typeof CandidateUpdateSchema>;
+
+export function patchCandidateProfile(
+  current: CandidateProfile,
+  patch: CandidateUpdate
+): CandidateProfile {
+  return {
+    ...current,
+    name: patch.name !== undefined ? patch.name : current.name,
+    location: patch.location !== undefined ? patch.location : current.location,
+    targetRole: patch.targetRole !== undefined ? patch.targetRole : current.targetRole,
+    yearsOfExperience:
+      patch.yearsOfExperience !== undefined ? patch.yearsOfExperience : current.yearsOfExperience,
+    skills: patch.skills !== undefined ? patch.skills : current.skills,
+    resumeSummary: patch.resumeSummary !== undefined ? patch.resumeSummary : current.resumeSummary,
+    experiences: patch.experiences !== undefined ? patch.experiences : current.experiences,
+    projects: patch.projects !== undefined ? patch.projects : current.projects,
+  };
+}
+
 export const DEFAULT_CANDIDATE_PROFILE: CandidateProfile = {
   id: "candidate-achyuth",
   name: "Achyuth",
