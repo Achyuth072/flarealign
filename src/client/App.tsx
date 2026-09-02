@@ -24,12 +24,19 @@ function renderToolPart(part: ToolPartLike, pIdx: number) {
   const toolName = part.type?.startsWith("tool-")
     ? part.type.replace("tool-", "")
     : part.toolName || part.type;
-  const payload = part.output || part.input;
-  const isPending =
-    part.state === "input-streaming" ||
-    part.state === "input-available" ||
-    (!part.output && !part.input && !part.errorText && !part.error);
+
+  // Ignore getCandidateProfile if present in legacy transcripts
+  if (toolName === "getCandidateProfile") {
+    return null;
+  }
+
+  const payload = part.output !== undefined ? part.output : part.input;
   const isError = part.state === "output-error" || Boolean(part.errorText) || Boolean(part.error);
+  const isPending =
+    !isError &&
+    (part.state === "input-streaming" ||
+      part.state === "input-available" ||
+      (!part.output && !part.errorText && !part.error));
 
   if (isPending) {
     return (
