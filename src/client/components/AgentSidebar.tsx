@@ -95,7 +95,7 @@ export function AgentSidebar({
                 <button
                   onClick={() =>
                     onQuickAction(
-                      "Evaluate candidate fit for Cloudflare's Software Engineer - Platforms & Productivity role in Bengaluru (Greenhouse #8168623)."
+                      "Evaluate candidate fit for Cloudflare's Software Engineer - Edge Platform & DevEx role in Bengaluru (Greenhouse #8168623)."
                     )
                   }
                   className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left hover:bg-[#16171B] hover:text-white transition-colors group cursor-pointer"

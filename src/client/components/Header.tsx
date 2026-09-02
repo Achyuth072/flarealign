@@ -23,10 +23,10 @@ export function Header({
           </div>
           <div className="flex items-center gap-2">
             <span className="font-bold text-sm text-white font-mono tracking-tight">
-              Cloudflare Agent
+              FlareAlign
             </span>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1A1B20] text-[#F6821F] border border-[#282A34] font-mono font-medium hidden sm:inline-block">
-              Platforms &amp; Productivity
+              Edge Platform &amp; DevEx
             </span>
           </div>
         </div>

@@ -149,7 +149,7 @@ export function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobTitle: "Software Engineer – Platforms & Productivity",
+          jobTitle: "Software Engineer – Edge Platform & DevEx",
           company: "Cloudflare",
           jobDescription:
             "Architect edge-native platforms, developer tooling, Workers AI integration, and Durable Objects distributed systems at Cloudflare Bengaluru.",
@@ -200,7 +200,7 @@ export function App() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-sm font-bold text-white tracking-tight">Platforms &amp; Productivity Copilot</h1>
+                    <h1 className="text-sm font-bold text-white tracking-tight">FlareAlign Copilot</h1>
                     <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#141518] text-[#F6821F] border border-[#22242B] font-mono">
                       v1.0 Edge
                     </span>
@@ -224,7 +224,7 @@ export function App() {
                 <button
                   onClick={() =>
                     handleQuickAction(
-                      "Evaluate candidate fit for Cloudflare's Software Engineer - Platforms & Productivity opening in Bengaluru."
+                      "Evaluate candidate fit for Cloudflare's Software Engineer - Edge Platform & DevEx opening in Bengaluru."
                     )
                   }
                   className="px-3 py-1.5 rounded-md bg-[#F6821F] hover:bg-[#E57213] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
@@ -245,7 +245,7 @@ export function App() {
 
                   <div className="space-y-1">
                     <h3 className="text-sm font-semibold text-white">
-                      Cloudflare Platforms &amp; Productivity Intelligence
+                      FlareAlign — Edge Platform &amp; DevEx Intelligence
                     </h3>
                     <p className="text-xs text-[#80808A] leading-relaxed">
                       Evaluate candidate fit, generate edge-tailored resume bullets, or architect STAR interview preparation for Cloudflare Bengaluru.
@@ -257,7 +257,7 @@ export function App() {
                     <button
                       onClick={() =>
                         handleQuickAction(
-                          "Evaluate my profile against Cloudflare's Software Engineer - Platforms & Productivity opening in Bengaluru. Provide score breakdown."
+                          "Evaluate my profile against Cloudflare's Software Engineer - Edge Platform & DevEx opening in Bengaluru. Provide score breakdown."
                         )
                       }
                       className="p-3 text-left rounded-lg bg-[#141518] hover:bg-[#1A1B22] border border-[#22242B] hover:border-[#F6821F]/40 text-xs transition-colors group cursor-pointer"
@@ -375,12 +375,12 @@ export function App() {
                 <button
                   onClick={() =>
                     handleQuickAction(
-                      "Evaluate my profile against Cloudflare's Software Engineer - Platforms & Productivity opening in Bengaluru. Provide score breakdown."
+                      "Evaluate my profile against Cloudflare's Software Engineer - Edge Platform & DevEx opening in Bengaluru. Provide score breakdown."
                     )
                   }
                   className="px-2.5 py-0.5 rounded-full bg-[#141518] hover:bg-[#1E2028] border border-[#22242B] hover:border-[#F6821F]/40 text-[#D0D2DC] transition-colors whitespace-nowrap cursor-pointer"
                 >
-                  ⚡ Score Fit
+                  Score Fit
                 </button>
                 <button
                   onClick={() =>
@@ -390,7 +390,7 @@ export function App() {
                   }
                   className="px-2.5 py-0.5 rounded-full bg-[#141518] hover:bg-[#1E2028] border border-[#22242B] hover:border-[#F6821F]/40 text-[#D0D2DC] transition-colors whitespace-nowrap cursor-pointer"
                 >
-                  📄 Tailor Resume
+                  Tailor Resume
                 </button>
                 <button
                   onClick={() =>
@@ -400,7 +400,7 @@ export function App() {
                   }
                   className="px-2.5 py-0.5 rounded-full bg-[#141518] hover:bg-[#1E2028] border border-[#22242B] hover:border-[#F6821F]/40 text-[#D0D2DC] transition-colors whitespace-nowrap cursor-pointer"
                 >
-                  🎯 STAR Prep
+                  STAR Prep
                 </button>
               </div>
 

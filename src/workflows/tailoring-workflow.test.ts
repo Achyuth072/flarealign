@@ -12,7 +12,7 @@ import { DEFAULT_CANDIDATE_PROFILE } from "../lib/candidate";
 
 describe("TailoringWorkflow AI Synthesis & Helpers", () => {
   const mockJob = {
-    title: "Software Engineer – Platforms & Productivity",
+    title: "Software Engineer – Edge Platform & DevEx",
     company: "Cloudflare",
     description: "Build developer platforms, distributed edge workflows, and systems tooling using TypeScript and Cloudflare Workers.",
   };
@@ -231,7 +231,7 @@ Hope this helps!
       const event = {
         payload: {
           jobId: "job-test-123",
-          jobTitle: "Software Engineer – Platforms & Productivity",
+          jobTitle: "Software Engineer – Edge Platform & DevEx",
           company: "Cloudflare",
           jobDescription: "Looking for a Software Engineer to work on Cloudflare Platforms, Workers, and Developer Productivity.",
         },

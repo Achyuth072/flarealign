@@ -81,7 +81,7 @@ export const DEFAULT_CANDIDATE_PROFILE: CandidateProfile = {
   id: "candidate-achyuth",
   name: "Achyuth",
   location: "Bengaluru, India",
-  targetRole: "Software Engineer – Platforms & Productivity",
+  targetRole: "Software Engineer – Edge Platform & DevEx",
   yearsOfExperience: 3,
   skills: [
     "TypeScript",

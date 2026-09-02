@@ -57,7 +57,7 @@ describe("Interview Prep Schemas and Persistence", () => {
 
     it("validates complete InterviewPrepSchema structure", () => {
       const fullPrep: InterviewPrep = {
-        jobTitle: "Software Engineer – Platforms & Productivity",
+        jobTitle: "Software Engineer – Edge Platform & DevEx",
         company: "Cloudflare",
         technicalQuestions: [
           {
@@ -82,7 +82,7 @@ describe("Interview Prep Schemas and Persistence", () => {
       };
 
       const parsed = parseInterviewPrep(fullPrep);
-      expect(parsed.jobTitle).toBe("Software Engineer – Platforms & Productivity");
+      expect(parsed.jobTitle).toBe("Software Engineer – Edge Platform & DevEx");
       expect(parsed.company).toBe("Cloudflare");
       expect(parsed.technicalQuestions.length).toBe(1);
       expect(parsed.behavioralQuestions.length).toBe(1);
