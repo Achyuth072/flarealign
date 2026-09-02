@@ -7,8 +7,13 @@ import {
   CandidateUpdateSchema,
   patchCandidateProfile,
 } from "./lib/candidate";
+import {
+  JobPosting,
+  JobPostingInputSchema,
+  normalizeJobPosting,
+} from "./lib/job";
 import { makeId } from "./lib/scoring";
-import { formatUserActorName } from "./lib/session";
+import { formatAgentSessionName, formatUserActorName } from "./lib/session";
 
 export { CareerAgent, TailoringWorkflow };
 
@@ -92,7 +97,77 @@ export default {
       });
     }
 
-    // 3. Workflow Trigger endpoint (direct HTTP test)
+    // 3. Job Posting endpoint (GET and POST/PUT for persistence)
+    if (url.pathname === "/api/job") {
+      const rawSession =
+        url.searchParams.get("session") ||
+        url.searchParams.get("agentSessionName");
+      const rawUserId = url.searchParams.get("userId") || request.headers.get("x-user-id");
+      const rawSessionId = url.searchParams.get("sessionId") || request.headers.get("x-session-id");
+
+      let actorName: string;
+      if (rawSession && rawSession.startsWith("session__")) {
+        actorName = rawSession;
+      } else if (rawUserId && rawSessionId) {
+        actorName = formatAgentSessionName(rawUserId, rawSessionId);
+      } else if (rawUserId) {
+        actorName = formatUserActorName(rawUserId);
+      } else {
+        actorName = rawSession || "candidate-session";
+      }
+
+      if (request.method === "POST" || request.method === "PUT") {
+        try {
+          const body = (await request.json()) as Record<string, unknown>;
+          const input = JobPostingInputSchema.parse(body.job ?? body);
+          let savedJob: JobPosting;
+
+          if (env.CareerAgent) {
+            const id = env.CareerAgent.idFromName(actorName);
+            const stub = env.CareerAgent.get(id);
+            savedJob = await (
+              stub as unknown as { saveActiveJob: (j: unknown) => Promise<JobPosting> }
+            ).saveActiveJob(input);
+          } else {
+            savedJob = normalizeJobPosting(input);
+          }
+
+          return Response.json({
+            success: true,
+            job: savedJob,
+          });
+        } catch (error) {
+          return Response.json(
+            { success: false, error: error instanceof Error ? error.message : String(error) },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Default GET: Fetch active job from Durable Object SQLite or fallback
+      try {
+        if (env.CareerAgent) {
+          const id = env.CareerAgent.idFromName(actorName);
+          const stub = env.CareerAgent.get(id);
+          const job = await (
+            stub as unknown as { getActiveJob: () => Promise<JobPosting | null> }
+          ).getActiveJob();
+          return Response.json({
+            success: true,
+            job: job || null,
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to fetch job from DO stub:", err);
+      }
+
+      return Response.json({
+        success: true,
+        job: null,
+      });
+    }
+
+    // 4. Workflow Trigger endpoint (direct HTTP test)
     if (url.pathname === "/api/workflows/trigger" && request.method === "POST") {
       try {
         const body = (await request.json()) as {
@@ -124,7 +199,7 @@ export default {
       }
     }
 
-    // 4. Route Agent Requests (WebSockets and HTTP Chat for CareerAgent DO)
+    // 5. Route Agent Requests (WebSockets and HTTP Chat for CareerAgent DO)
     const agentResponse = await routeAgentRequest(request, env);
     if (agentResponse) {
       return agentResponse;

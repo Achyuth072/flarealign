@@ -4,11 +4,10 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] Validated domain schema and types for `JobPosting` with title, company, location, requiredSkills, preferredSkills, responsibilities, experienceLevel, rawDescription, and timestamps.
-- [ ] SQLite `jobs` table migration/updates to store structured job postings with `NOT NULL` constraints.
-- [ ] `GET /api/job` and `POST /api/job` endpoints on the Worker router to fetch and update the session's active target job.
-- [ ] Saving a new target job cascades or explicitly resets stale records in `fit_scores` and `applications`.
-- [ ] Unit tests for schema validation, SQLite mutations, and cascading reset behavior.
-
+- [x] Validated domain schema and types for `JobPosting` with title, company, location, requiredSkills, preferredSkills, responsibilities, experienceLevel, rawDescription, and timestamps.
+- [x] SQLite `jobs` table migration/updates to store structured job postings with `NOT NULL` constraints.
+- [x] `GET /api/job` and `POST /api/job` endpoints on the Worker router to fetch and update the session's active target job.
+- [x] Saving a new target job cascades or explicitly resets stale records in `fit_scores` and `applications`.
+- [x] Unit tests for schema validation, SQLite mutations, and cascading reset behavior.

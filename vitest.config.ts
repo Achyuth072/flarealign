@@ -5,11 +5,16 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    server: {
+      deps: {
+        inline: ["agents", "@cloudflare/ai-chat"],
+      },
+    },
   },
   resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "./src"),
-      "cloudflare:workers": path.resolve(import.meta.dirname, "./src/test-utils/cloudflare-workers-shim.ts"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(import.meta.dirname, "./src") },
+      { find: /^cloudflare:.*/, replacement: path.resolve(import.meta.dirname, "./src/test-utils/cloudflare-workers-shim.ts") },
+    ],
   },
 });

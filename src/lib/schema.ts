@@ -1,4 +1,5 @@
 import { CandidateProfile, DEFAULT_CANDIDATE_PROFILE } from "./candidate";
+import { JobPosting } from "./job";
 
 export const SQL_ENABLE_FOREIGN_KEYS = `PRAGMA foreign_keys = ON;`;
 
@@ -16,8 +17,14 @@ CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY NOT NULL,
   title TEXT NOT NULL,
   company TEXT NOT NULL,
-  description TEXT NOT NULL,
-  created_at INTEGER NOT NULL
+  location TEXT NOT NULL,
+  required_skills TEXT NOT NULL,
+  preferred_skills TEXT NOT NULL,
+  responsibilities TEXT NOT NULL,
+  experience_level TEXT NOT NULL,
+  raw_description TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
 );
 `;
 
@@ -61,8 +68,14 @@ export interface JobRow {
   id: string;
   title: string;
   company: string;
-  description: string;
+  location: string;
+  required_skills: string;
+  preferred_skills: string;
+  responsibilities: string;
+  experience_level: string;
+  raw_description: string;
   created_at: number;
+  updated_at: number;
 }
 
 export interface FitScoreRow {
@@ -80,6 +93,71 @@ export interface ApplicationRow {
   tailored_resume: string;
   interview_prep: string;
   created_at: number;
+}
+
+export function jobPostingToRow(job: JobPosting): JobRow {
+  return {
+    id: job.id,
+    title: job.title,
+    company: job.company,
+    location: job.location,
+    required_skills: JSON.stringify(job.requiredSkills),
+    preferred_skills: JSON.stringify(job.preferredSkills),
+    responsibilities: JSON.stringify(job.responsibilities),
+    experience_level: job.experienceLevel,
+    raw_description: job.rawDescription,
+    created_at: job.createdAt,
+    updated_at: job.updatedAt,
+  };
+}
+
+export function rowToJobPosting(
+  row: JobRow | (Partial<JobRow> & { id: string; title: string; company: string; created_at: number; description?: string })
+): JobPosting {
+  let requiredSkills: string[] = [];
+  let preferredSkills: string[] = [];
+  let responsibilities: string[] = [];
+
+  if (row.required_skills) {
+    try {
+      const parsed = JSON.parse(row.required_skills);
+      if (Array.isArray(parsed)) requiredSkills = parsed;
+    } catch {
+      requiredSkills = [];
+    }
+  }
+
+  if (row.preferred_skills) {
+    try {
+      const parsed = JSON.parse(row.preferred_skills);
+      if (Array.isArray(parsed)) preferredSkills = parsed;
+    } catch {
+      preferredSkills = [];
+    }
+  }
+
+  if (row.responsibilities) {
+    try {
+      const parsed = JSON.parse(row.responsibilities);
+      if (Array.isArray(parsed)) responsibilities = parsed;
+    } catch {
+      responsibilities = [];
+    }
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    company: row.company,
+    location: row.location ?? "Remote",
+    requiredSkills,
+    preferredSkills,
+    responsibilities,
+    experienceLevel: row.experience_level ?? "Mid-Senior Level",
+    rawDescription: row.raw_description ?? (row as { description?: string }).description ?? "",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? row.created_at,
+  };
 }
 
 /**

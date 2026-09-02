@@ -1,10 +1,12 @@
 import type { CandidateProfile } from "../lib/candidate";
+import type { JobPosting, JobPostingInput } from "../lib/job";
 import type { InterviewPrep, BehavioralQuestion, TechnicalQuestion } from "../lib/interview";
 import type { FitScoreSubDimensions } from "../lib/scoring";
 
 export interface ApiResponse<T> {
   success?: boolean;
   candidate?: T;
+  job?: T;
   workflowInstanceId?: string;
   error?: string;
 }
@@ -41,5 +43,12 @@ export interface ToolPartLike {
   error?: unknown;
 }
 
-export type { CandidateProfile, InterviewPrep, BehavioralQuestion, TechnicalQuestion, FitScoreSubDimensions };
-
+export type {
+  CandidateProfile,
+  JobPosting,
+  JobPostingInput,
+  InterviewPrep,
+  BehavioralQuestion,
+  TechnicalQuestion,
+  FitScoreSubDimensions,
+};

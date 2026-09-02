@@ -8,9 +8,10 @@ import {
   CandidateUpdateSchema,
   patchCandidateProfile,
 } from "../lib/candidate";
+import { JobPosting, JobPostingInput, normalizeJobPosting } from "../lib/job";
 import { getSystemPrompt } from "../lib/prompts";
 import { InterviewPrepSchema } from "../lib/interview";
-import { seedCandidateIfMissing } from "../lib/schema";
+import { seedCandidateIfMissing, jobPostingToRow, rowToJobPosting, JobRow } from "../lib/schema";
 import { repairStringifiedContainers } from "../lib/repair-tool-input";
 import { withDedupedToolCallEnvelopes, WorkersAIBinding } from "../lib/workers-ai-binding";
 import {
@@ -35,6 +36,7 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
 
   private initDatabase(): void {
     try {
+      this.sql`PRAGMA foreign_keys = ON;`;
       this.sql`
         CREATE TABLE IF NOT EXISTS candidates (
           id TEXT PRIMARY KEY NOT NULL,
@@ -48,8 +50,14 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
           id TEXT PRIMARY KEY NOT NULL,
           title TEXT NOT NULL,
           company TEXT NOT NULL,
-          description TEXT NOT NULL,
-          created_at INTEGER NOT NULL
+          location TEXT NOT NULL DEFAULT 'Remote',
+          required_skills TEXT NOT NULL DEFAULT '[]',
+          preferred_skills TEXT NOT NULL DEFAULT '[]',
+          responsibilities TEXT NOT NULL DEFAULT '[]',
+          experience_level TEXT NOT NULL DEFAULT 'Mid-Senior Level',
+          raw_description TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL DEFAULT 0
         )
       `;
       this.sql`
@@ -74,6 +82,29 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
     } catch (err) {
       console.warn("Schema initialization notice:", err);
     }
+
+    // Auto-migrate older jobs table if columns are missing
+    try {
+      this.sql`ALTER TABLE jobs ADD COLUMN location TEXT NOT NULL DEFAULT 'Remote'`;
+    } catch {}
+    try {
+      this.sql`ALTER TABLE jobs ADD COLUMN required_skills TEXT NOT NULL DEFAULT '[]'`;
+    } catch {}
+    try {
+      this.sql`ALTER TABLE jobs ADD COLUMN preferred_skills TEXT NOT NULL DEFAULT '[]'`;
+    } catch {}
+    try {
+      this.sql`ALTER TABLE jobs ADD COLUMN responsibilities TEXT NOT NULL DEFAULT '[]'`;
+    } catch {}
+    try {
+      this.sql`ALTER TABLE jobs ADD COLUMN experience_level TEXT NOT NULL DEFAULT 'Mid-Senior Level'`;
+    } catch {}
+    try {
+      this.sql`ALTER TABLE jobs ADD COLUMN raw_description TEXT NOT NULL DEFAULT ''`;
+    } catch {}
+    try {
+      this.sql`ALTER TABLE jobs ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`;
+    } catch {}
 
     seedCandidateIfMissing(
       (candidateId) => {
@@ -109,13 +140,94 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
       });
     }
 
+    const now = Date.now();
     // Ensure parent job record exists for foreign key constraints
     this.sql`
-      INSERT OR IGNORE INTO jobs (id, title, company, description, created_at)
-      VALUES (${activeJobId}, ${jobTitle}, ${company}, ${description}, ${Date.now()})
+      INSERT OR IGNORE INTO jobs (
+        id, title, company, location, required_skills, preferred_skills,
+        responsibilities, experience_level, raw_description, created_at, updated_at
+      )
+      VALUES (
+        ${activeJobId}, ${jobTitle}, ${company}, 'Remote', '[]', '[]', '[]', 'Mid-Senior Level', ${description}, ${now}, ${now}
+      )
     `;
 
     return activeJobId;
+  }
+
+  async getActiveJob(): Promise<JobPosting | null> {
+    this.initDatabase();
+
+    if (this.state?.activeJobId) {
+      const rows = this.sql`SELECT * FROM jobs WHERE id = ${this.state.activeJobId}`;
+      if (rows && rows.length > 0) {
+        return rowToJobPosting(rows[0] as unknown as JobRow);
+      }
+    }
+
+    const rows = this.sql`SELECT * FROM jobs ORDER BY updated_at DESC, created_at DESC LIMIT 1`;
+    if (rows && rows.length > 0) {
+      const job = rowToJobPosting(rows[0] as unknown as JobRow);
+      if (this.state?.activeJobId !== job.id) {
+        this.setState({
+          ...this.state,
+          activeJobId: job.id,
+        });
+      }
+      return job;
+    }
+
+    return null;
+  }
+
+  async saveActiveJob(input: JobPostingInput): Promise<JobPosting> {
+    this.initDatabase();
+    const job = normalizeJobPosting(input);
+    const row = jobPostingToRow(job);
+
+    // Invalidate prior jobs and stale evaluations to prevent orphaned jobs and stale recommendations
+    try {
+      this.sql`DELETE FROM jobs WHERE id != ${row.id}`;
+      this.sql`DELETE FROM fit_scores`;
+      this.sql`DELETE FROM applications`;
+    } catch (err) {
+      console.warn("Failed to clear stale records on job update:", err);
+    }
+
+    this.sql`
+      INSERT OR REPLACE INTO jobs (
+        id, title, company, location, required_skills, preferred_skills,
+        responsibilities, experience_level, raw_description, created_at, updated_at
+      ) VALUES (
+        ${row.id}, ${row.title}, ${row.company}, ${row.location},
+        ${row.required_skills}, ${row.preferred_skills}, ${row.responsibilities},
+        ${row.experience_level}, ${row.raw_description}, ${row.created_at}, ${row.updated_at}
+      )
+    `;
+
+    this.setState({
+      ...this.state,
+      activeJobId: job.id,
+      lastScore: undefined,
+    });
+
+    return job;
+  }
+
+  async clearActiveJob(): Promise<void> {
+    this.initDatabase();
+    try {
+      this.sql`DELETE FROM fit_scores`;
+      this.sql`DELETE FROM applications`;
+      this.sql`DELETE FROM jobs`;
+    } catch (err) {
+      console.warn("Failed to clear jobs/fit_scores/applications:", err);
+    }
+    this.setState({
+      ...this.state,
+      activeJobId: undefined,
+      lastScore: undefined,
+    });
   }
 
   private upsertApplication(
@@ -228,21 +340,28 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
         description: "Analyze candidate fit for a job posting across skills, experience, domain, and trajectory.",
         inputSchema: ScoreJobFitSchema,
         execute: async (args) => {
+          const subDimensions = {
+            skillsFit: args.skillsFit,
+            experienceFit: args.experienceFit,
+            domainFit: args.domainFit,
+            trajectoryFit: args.trajectoryFit,
+          };
+          const compositeScore = computeCompositeFitScore(subDimensions);
+          const recommendation = deriveRecommendation(compositeScore);
+
           try {
-            const subDimensions = {
-              skillsFit: args.skillsFit,
-              experienceFit: args.experienceFit,
-              domainFit: args.domainFit,
-              trajectoryFit: args.trajectoryFit,
-            };
-            const compositeScore = computeCompositeFitScore(subDimensions);
-            const recommendation = deriveRecommendation(compositeScore);
             const jobId = makeId("job");
             const scoreId = makeId("score");
+            const now = Date.now();
 
             this.sql`
-              INSERT OR REPLACE INTO jobs (id, title, company, description, created_at)
-              VALUES (${jobId}, ${args.jobTitle}, ${args.company}, ${args.jobDescription || ""}, ${Date.now()})
+              INSERT OR REPLACE INTO jobs (
+                id, title, company, location, required_skills, preferred_skills,
+                responsibilities, experience_level, raw_description, created_at, updated_at
+              )
+              VALUES (
+                ${jobId}, ${args.jobTitle}, ${args.company}, 'Remote', '[]', '[]', '[]', 'Mid-Senior Level', ${args.jobDescription || ""}, ${now}, ${now}
+              )
             `;
 
             const breakdown = JSON.stringify({
@@ -276,14 +395,6 @@ export class CareerAgent extends AIChatAgent<Env, CareerAgentState> {
             };
           } catch (err) {
             console.error("[CareerAgent] Error in scoreJobFit execute:", err);
-            const subDimensions = {
-              skillsFit: args.skillsFit,
-              experienceFit: args.experienceFit,
-              domainFit: args.domainFit,
-              trajectoryFit: args.trajectoryFit,
-            };
-            const compositeScore = computeCompositeFitScore(subDimensions);
-            const recommendation = deriveRecommendation(compositeScore);
             return {
               error: true,
               message: `Score computed but failed to persist: ${err instanceof Error ? err.message : String(err)}`,

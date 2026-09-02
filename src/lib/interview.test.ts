@@ -102,8 +102,11 @@ describe("Interview Prep Schemas and Persistence", () => {
       // 1. Insert parent job
       const jobId = "job-cf-prep-1";
       db.prepare(
-        "INSERT INTO jobs (id, title, company, description, created_at) VALUES (?, ?, ?, ?, ?)"
-      ).run(jobId, "SE Platforms", "Cloudflare", "Edge Platform Role", Date.now());
+        `INSERT INTO jobs (
+          id, title, company, location, required_skills, preferred_skills,
+          responsibilities, experience_level, raw_description, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(jobId, "SE Platforms", "Cloudflare", "Remote", "[]", "[]", "[]", "Senior", "Edge Platform Role", Date.now(), Date.now());
 
       // 2. Insert interview prep payload
       const prepPayload: InterviewPrep = {
@@ -153,8 +156,11 @@ describe("Interview Prep Schemas and Persistence", () => {
     it("updates existing applications record with new interview_prep data", () => {
       const jobId = "job-cf-prep-2";
       db.prepare(
-        "INSERT INTO jobs (id, title, company, description, created_at) VALUES (?, ?, ?, ?, ?)"
-      ).run(jobId, "SE Platforms", "Cloudflare", "Edge Platform Role", Date.now());
+        `INSERT INTO jobs (
+          id, title, company, location, required_skills, preferred_skills,
+          responsibilities, experience_level, raw_description, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(jobId, "SE Platforms", "Cloudflare", "Remote", "[]", "[]", "[]", "Senior", "Edge Platform Role", Date.now(), Date.now());
 
       const appId = "app-prep-2";
       db.prepare(
@@ -204,8 +210,11 @@ describe("Interview Prep Schemas and Persistence", () => {
     it("preserves interview_prep when tailored_resume is subsequently upserted", () => {
       const jobId = "job-cf-prep-3";
       db.prepare(
-        "INSERT INTO jobs (id, title, company, description, created_at) VALUES (?, ?, ?, ?, ?)"
-      ).run(jobId, "SE Platforms", "Cloudflare", "Edge Platform Role", Date.now());
+        `INSERT INTO jobs (
+          id, title, company, location, required_skills, preferred_skills,
+          responsibilities, experience_level, raw_description, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(jobId, "SE Platforms", "Cloudflare", "Remote", "[]", "[]", "[]", "Senior", "Edge Platform Role", Date.now(), Date.now());
 
       const appId = "app-prep-3";
       const initialPrep: InterviewPrep = {
