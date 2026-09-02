@@ -14,7 +14,6 @@ import {
 import type { CandidateProfile, ToolPartLike, ApiResponse, ScoreJobFitData, TailorResumeData, InterviewPrep } from "./types";
 import { Header } from "./components/Header";
 import { AgentSidebar } from "./components/AgentSidebar";
-import { AgentTelemetryPanel } from "./components/AgentTelemetryPanel";
 import { FitScoreView } from "./components/FitScoreView";
 import { TailorResumeView } from "./components/TailorResumeView";
 import { InterviewPrepView } from "./components/InterviewPrepView";
@@ -190,7 +189,6 @@ export function App() {
       <div className="flex flex-1 overflow-hidden relative">
         {/* Left Navigation Sidebar */}
         <AgentSidebar
-          onQuickAction={handleQuickAction}
           onTriggerWorkflow={triggerDirectWorkflow}
           isTriggeringWorkflow={isTriggeringWorkflow}
           workflowStatus={workflowStatus}
@@ -456,11 +454,6 @@ export function App() {
             </div>
           </div>
         </main>
-
-        {/* Right Telemetry Panel */}
-        <AgentTelemetryPanel
-          candidate={candidate}
-        />
       </div>
 
       {/* Edit Profile Modal */}
