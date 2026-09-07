@@ -14,7 +14,7 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
-    "@ai-sdk/react": "^4.0.91",
+    "@ai-sdk/react": "^4.0.95",
     "@cloudflare/ai-chat": "^0.11.0",
     "agents": "^0.22.0",
     "ai": "^7.0.88",
@@ -27,7 +27,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260901.1",
+    "@cloudflare/workers-types": "^5.20260904.1",
     "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
